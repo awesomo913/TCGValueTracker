@@ -1,0 +1,258 @@
+.App {
+  text-align: center;
+}
+
+/* Anime vibe wrapper */
+.anime-app {
+  min-height: 100vh;
+  /* subtle animated gradient background */
+  background: radial-gradient(circle at 20% 20%, rgba(255,0,128,0.25), rgba(0,0,0,0) 40%),
+             radial-gradient(circle at 80% 0%, rgba(0,180,255,0.25), rgba(0,0,0,0) 40%),
+             linear-gradient(135deg, #0e0a1a 0%, #1a0f2a 60%, #0b1020 100%);
+  color: #fff;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+}
+
+.App-header h1 {
+  margin: 0;
+}
+
+.App-header nav ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.App-header nav ul li {
+  display: inline;
+  margin-right: 20px;
+}
+
+.App-header nav ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+.App-header nav ul li a:hover {
+  text-decoration: underline;
+}
+
+main {
+  padding: 20px;
+}
+
+.dashboard-stats {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  width: 200px;
+}
+
+.stat-card h3 {
+  margin-top: 0;
+}
+
+.quick-actions {
+  margin: 20px 0;
+}
+
+.quick-actions h3 {
+  margin-top: 0;
+}
+
+.quick-actions button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  margin: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.quick-actions button:hover {
+  background-color: #0056b3;
+}
+
+.search-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.search-bar input {
+  padding: 10px;
+  width: 300px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.add-button {
+  background-color: #28a745;
+  color: white;
+  padding: 10px 15px;
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.add-button:hover {
+  background-color: #1e7e34;
+}
+
+.snapshot-bars {
+  margin-top: 16px;
+}
+.source-bar {
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+}
+.source-bar .bar-label {
+  width: 120px;
+  font-weight: bold;
+}
+.source-bar .bar {
+  height: 14px;
+  background-color: #4caf50;
+  border-radius: 7px;
+  flex: 1;
+  margin: 0 12px;
+}
+.source-bar .bar-value {
+  width: 80px;
+  text-align: right;
+}
+
+.anime-snapshot {
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(180, 0, 255, 0.15), rgba(0, 255, 214, 0.15));
+  box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+}
+.anime-snapshot .snapshot-bars { margin-top: 12px; }
+
+.card-table, .sealed-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+/* Anime-inspired tile grid */
+.card-grid, .sealed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 12px;
+}
+.anime-tile {
+  background: linear-gradient(135deg, rgba(255, 0, 128, 0.25), rgba(0, 180, 255, 0.25));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  padding: 14px;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+}
+.anime-tile:before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.25), rgba(255,255,255,0));
+  filter: blur(2px);
+  border-radius: 50%;
+}
+.tile-header { margin-bottom: 8px; }
+.tile-title { font-weight: 700; font-size: 1.1rem; }
+.tile-subtitle { font-size: 0.85rem; opacity: 0.9; }
+.tile-price { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.tile-price .label { font-size: 0.8rem; opacity: 0.9; }
+.tile-price .value { font-weight: bold; font-size: 1rem; }
+.price-sources { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.source-bar { display: flex; align-items: center; height: 22px; gap: 8px; }
+.source-bar .src-name { width: 90px; font-size: 0.8rem; opacity: 0.95; }
+.source-bar .bar { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #4e6cff, #a855f7); box-shadow: inset 0 0 6px rgba(0,0,0,0.3); }
+.source-bar .src-price { width: 70px; text-align: right; font-family: monospace; }
+.tile-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.tile-actions a { color: #ffd4f0; text-decoration: none; }
+.tile-actions .ghost { background: transparent; color: #fff; border: 1px solid #fff3; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+
+.card-table th, .card-table td,
+.sealed-table th, .sealed-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.card-table th, .sealed-table th {
+  background-color: #f2f2f2;
+}
+
+.card-table tr:nth-child(even), .sealed-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.card-table tr:hover, .sealed-table tr:hover {
+  background-color: #f1f1f1;
+}
+
+form div {
+  margin: 15px 0;
+  text-align: left;
+}
+
+form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+form input, form select, form textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+form button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+form button:hover {
+  background-color: #0056b3;
+}
+
+form button[disabled] {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.price-sources-section {
+  text-align: left;
+  margin: 12px 0 20px 0;
+  padding: 8px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #f9f9f9;
+}

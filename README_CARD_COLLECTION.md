@@ -54,6 +54,18 @@ npm run build
 
 API base URL is **http://localhost:8000** (see `src/services/api.js`).
 
+### Publish to GitHub
+
+This `Desktop\AI` checkout is a **partial git repo**: only the card collection trees, `.github/workflows/card-collection-ci.yml`, `README_CARD_COLLECTION.md`, and `CARD_COLLECTION_CLAUDIFY_HANDOFF.md` are in the first commit.
+
+```bash
+cd Desktop/AI
+gh auth login               # or complete device flow: gh auth refresh
+gh repo create card-collection-anime-stack --public --source=. --remote=origin --push
+```
+
+Pick another repo name if taken. Remove stale `origin` first if needed: `git remote remove origin`.
+
 ### Licence
 
 Private / your project unless you attach a OSS licence separately.

@@ -1,0 +1,1545 @@
+{
+  "generated_at": "2026-05-05T18:49:32Z",
+  "generator_version": "2.2.0",
+  "root": "C:\\Users\\computer\\Desktop\\AI",
+  "count": 79,
+  "projects": [
+    {
+      "index_key": "1Coworker",
+      "slug": "1Coworker",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\1Coworker",
+      "rel": "1Coworker",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "adhd_free",
+      "slug": "adhd_free",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\adhd_free",
+      "rel": "adhd_free",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "d21a1f9",
+        "last_commit_at": "2026-05-05T14:43:57-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "ADHD-aware daily-driver. Captures activity, summarizes per project via DeepSeek, briefs you on return after 4hr+ absence.",
+      "python_version": ">=3.11"
+    },
+    {
+      "index_key": "agentzero",
+      "slug": "agentzero",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\agentzero",
+      "rel": "agentzero",
+      "has_readme": true,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {
+        "last_commit": "f61ce5c",
+        "last_commit_at": "2026-05-01T23:39:37-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 5,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "Private Agent 0 workspace snapshot with a native Screen Agent integration.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai",
+      "slug": "ai",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai",
+      "rel": "ai",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "ai/RapFlowTeacher",
+      "slug": "ai__RapFlowTeacher",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai\\RapFlowTeacher",
+      "rel": "ai\\RapFlowTeacher",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "ff3c069",
+        "last_commit_at": "2026-04-17T23:37:59-04:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 55,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "AI2",
+      "slug": "AI2",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\AI2",
+      "rel": "AI2",
+      "has_readme": true,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {
+        "last_commit": "f61ce5c",
+        "last_commit_at": "2026-05-01T23:39:37-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 5,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "Private Agent 0 workspace snapshot with a native Screen Agent integration.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_intel_hub",
+      "slug": "ai_intel_hub",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_intel_hub",
+      "rel": "ai_intel_hub",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "0f5fea9",
+        "last_commit_at": "2026-04-13T06:23:39-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "AI Industry Intelligence Tracker & Monetization Advisor - a desktop application that continuously tracks AI developments and proposes monetization strategies.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit",
+      "slug": "ai_toolkit",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit",
+      "rel": "ai_toolkit",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/awesome-design-md",
+      "slug": "ai_toolkit__repos__awesome-design-md",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\awesome-design-md",
+      "rel": "ai_toolkit\\repos\\awesome-design-md",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "6dc4def",
+        "last_commit_at": "2026-04-19T17:39:51+03:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "Copy a DESIGN.md into your project, tell your AI agent \"build me a page that looks like this\" and get pixel-perfect UI that actually matches.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/caveman",
+      "slug": "ai_toolkit__repos__caveman",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\caveman",
+      "rel": "ai_toolkit\\repos\\caveman",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "84cc3c1",
+        "last_commit_at": "2026-04-18T12:11:38+02:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 0,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill/plugin and Codex plugin that makes agent talk like caveman \u2014 cutting **~75% of output tokens** while keeping full technical accuracy.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/CL4R1T4S",
+      "slug": "ai_toolkit__repos__CL4R1T4S",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\CL4R1T4S",
+      "rel": "ai_toolkit\\repos\\CL4R1T4S",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "1a55b8a",
+        "last_commit_at": "2026-04-17T12:56:21-07:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "AI SYSTEMS TRANSPARENCY AND OBSERVABILITY FOR ALL! Full extracted system prompts, guidelines, and tools from OpenAI, Google, Anthropic, xAI, Perplexity, Cursor, Windsurf, Devin, Manus, Replit, and more \u2013 virtually all ma\u2026",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/claude-mem",
+      "slug": "ai_toolkit__repos__claude-mem",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\claude-mem",
+      "rel": "ai_toolkit\\repos\\claude-mem",
+      "has_readme": true,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {
+        "last_commit": "dc906e5",
+        "last_commit_at": "2026-04-19T16:35:01-07:00",
+        "dirty": true
+      },
+      "is_nested": true,
+      "build_hint_count": 4,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/cognee",
+      "slug": "ai_toolkit__repos__cognee",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\cognee",
+      "rel": "ai_toolkit\\repos\\cognee",
+      "has_readme": true,
+      "stack_tags": [
+        "python",
+        "docker"
+      ],
+      "git": {
+        "last_commit": "20188a6",
+        "last_commit_at": "2026-04-18T07:26:44-07:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 2,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "Cognee - Build AI memory with a Knowledge Engine that learns",
+      "python_version": ">=3.10,<3.14"
+    },
+    {
+      "index_key": "ai_toolkit/repos/GenericAgent",
+      "slug": "ai_toolkit__repos__GenericAgent",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\GenericAgent",
+      "rel": "ai_toolkit\\repos\\GenericAgent",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "63c7c83",
+        "last_commit_at": "2026-04-19T23:21:37+08:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 60,
+      "agent_summary": "Its design philosophy: **don't preload skills \u2014 evolve them.**",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/google-ai-edge-gallery",
+      "slug": "ai_toolkit__repos__google-ai-edge-gallery",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\google-ai-edge-gallery",
+      "rel": "ai_toolkit\\repos\\google-ai-edge-gallery",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "2f7d6ad",
+        "last_commit_at": "2026-04-17T16:37:40-07:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "AI Edge Gallery is the premier destination for running the world's most powerful open-source Large Language Models (LLMs) on your mobile device.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/hermes-agent",
+      "slug": "ai_toolkit__repos__hermes-agent",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\hermes-agent",
+      "rel": "ai_toolkit\\repos\\hermes-agent",
+      "has_readme": true,
+      "stack_tags": [
+        "node",
+        "python",
+        "docker"
+      ],
+      "git": {
+        "last_commit": "a3a4932",
+        "last_commit_at": "2026-04-19T16:31:07-07:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 6,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "Use any model you want \u2014 [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai) (200+ models), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com\u2026",
+      "python_version": ">=3.11"
+    },
+    {
+      "index_key": "ai_toolkit/repos/karpathy-skills",
+      "slug": "ai_toolkit__repos__karpathy-skills",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\karpathy-skills",
+      "rel": "ai_toolkit\\repos\\karpathy-skills",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "fb7a22c",
+        "last_commit_at": "2026-04-19T01:51:53+08:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 0,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 60,
+      "agent_summary": "> Check out my new project [Multica](https://github.com/multica-ai/multica) \u2014 an open-source platform for running and managing coding agents with reusable skills.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/multica",
+      "slug": "ai_toolkit__repos__multica",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\multica",
+      "rel": "ai_toolkit\\repos\\multica",
+      "has_readme": true,
+      "stack_tags": [
+        "node",
+        "docker"
+      ],
+      "git": {
+        "last_commit": "a7e9801",
+        "last_commit_at": "2026-04-20T00:36:10+08:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 5,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "The open-source managed agents platform.<br/> Turn coding agents into real teammates \u2014 assign tasks, track progress, compound skills.",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/oh-my-claudecode",
+      "slug": "ai_toolkit__repos__oh-my-claudecode",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\oh-my-claudecode",
+      "rel": "ai_toolkit\\repos\\oh-my-claudecode",
+      "has_readme": true,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {
+        "last_commit": "478093b",
+        "last_commit_at": "2026-04-19T08:08:23Z",
+        "dirty": true
+      },
+      "is_nested": true,
+      "build_hint_count": 5,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "English | [\ud55c\uad6d\uc5b4](README.ko.md) | [\u4e2d\u6587](README.zh.md) | [\u65e5\u672c\u8a9e](README.ja.md) | [Espa\u00f1ol](README.es.md) | [Ti\u1ebfng Vi\u1ec7t](README.vi.md) | [Portugu\u00eas](README.pt.md)",
+      "python_version": null
+    },
+    {
+      "index_key": "ai_toolkit/repos/pi-autoresearch",
+      "slug": "ai_toolkit__repos__pi-autoresearch",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\ai_toolkit\\repos\\pi-autoresearch",
+      "rel": "ai_toolkit\\repos\\pi-autoresearch",
+      "has_readme": true,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {
+        "last_commit": "5a29db0",
+        "last_commit_at": "2026-04-13T04:18:57-04:00"
+      },
+      "is_nested": true,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "An extension for **[pi](https://pi.dev/)** \u2014 an AI coding agent that runs in your terminal.",
+      "python_version": null
+    },
+    {
+      "index_key": "AIStudio",
+      "slug": "AIStudio",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\AIStudio",
+      "rel": "AIStudio",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 4,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "Turn your AI coding assistant into a full video production studio. Describe what you want in plain language \u2014 your agent handles research, scripting, asset generation, editing, and final composition.",
+      "python_version": null
+    },
+    {
+      "index_key": "app-compliance-checker",
+      "slug": "app-compliance-checker",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\app-compliance-checker",
+      "rel": "app-compliance-checker",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 30,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "auto_scraper",
+      "slug": "auto_scraper",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\auto_scraper",
+      "rel": "auto_scraper",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "autoautodesk",
+      "slug": "autoautodesk",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\autoautodesk",
+      "rel": "autoautodesk",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "aeeb64a",
+        "last_commit_at": "2026-04-16T11:00:39-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "A beginner-friendly desktop app that turns a description, a reference photo, or a click on a preloaded preset into a real parametric Fusion 360 body \u2014 with STL export baked in.",
+      "python_version": null
+    },
+    {
+      "index_key": "awesomo913-github-io",
+      "slug": "awesomo913-github-io",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\awesomo913-github-io",
+      "rel": "awesomo913-github-io",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "09effa6",
+        "last_commit_at": "2026-04-15T02:14:54-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 40,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "BambooForest",
+      "slug": "BambooForest",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\BambooForest",
+      "rel": "BambooForest",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "54ea37f",
+        "last_commit_at": "2026-04-27T02:53:25-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 25,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "BossFiness-Chronicles-of-The-Time-Thief",
+      "slug": "BossFiness-Chronicles-of-The-Time-Thief",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\BossFiness-Chronicles-of-The-Time-Thief",
+      "rel": "BossFiness-Chronicles-of-The-Time-Thief",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "d4297e5",
+        "last_commit_at": "2026-05-03T06:35:38-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "Private repository.",
+      "python_version": null
+    },
+    {
+      "index_key": "bubbys_game",
+      "slug": "bubbys_game",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\bubbys_game",
+      "rel": "bubbys_game",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "card-collection-anime",
+      "slug": "card-collection-anime",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\card-collection-anime",
+      "rel": "card-collection-anime",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "38f5757",
+        "last_commit_at": "2026-05-04T12:37:33-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "Inventory + multi-source price tracking for **Magic: The Gathering**, **Pok\u00e9mon**, and **Yu-Gi-Oh!** \u2014 single cards and sealed product. FastAPI backend, React frontend, neon-anime UI.",
+      "python_version": null
+    },
+    {
+      "index_key": "card_collection_backend",
+      "slug": "card_collection_backend",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\card_collection_backend",
+      "rel": "card_collection_backend",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 30,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "card_collection_frontend",
+      "slug": "card_collection_frontend",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\card_collection_frontend",
+      "rel": "card_collection_frontend",
+      "has_readme": false,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 4,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "cc-mastery-pwa",
+      "slug": "cc-mastery-pwa",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\cc-mastery-pwa",
+      "rel": "cc-mastery-pwa",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "bec1810",
+        "last_commit_at": "2026-04-15T02:15:43-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 25,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "cc-mastery-pwa-apk",
+      "slug": "cc-mastery-pwa-apk",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\cc-mastery-pwa-apk",
+      "rel": "cc-mastery-pwa-apk",
+      "has_readme": false,
+      "stack_tags": [
+        "node",
+        "android"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 4,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "cine_forge",
+      "slug": "cine_forge",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\cine_forge",
+      "rel": "cine_forge",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 30,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "claude interaction tool",
+      "slug": "claude_interaction_tool",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\claude interaction tool",
+      "rel": "claude interaction tool",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "f56aad6",
+        "last_commit_at": "2026-05-03T12:33:09-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "Save **88% of input tokens** when working with Claude Code by pre-staging targeted code context instead of letting Claude read entire files.",
+      "python_version": ">=3.10"
+    },
+    {
+      "index_key": "claudify-this",
+      "slug": "claudify-this",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\claudify-this",
+      "rel": "claudify-this",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "0a60372",
+        "last_commit_at": "2026-04-26T22:36:03-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 60,
+      "agent_summary": "Cursor rule: when you say **\u201cClaudify this\u201d** in chat, the agent should reply with a **single copy-paste block** formatted for the **Claude app** (Desktop, web, or mobile) to debug or design a fix\u2014then you can paste Clau\u2026",
+      "python_version": null
+    },
+    {
+      "index_key": "CryptoTrader",
+      "slug": "CryptoTrader",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\CryptoTrader",
+      "rel": "CryptoTrader",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "cursor_token_saver",
+      "slug": "cursor_token_saver",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\cursor_token_saver",
+      "rel": "cursor_token_saver",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "de55065",
+        "last_commit_at": "2026-04-25T03:00:36-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "Save 88% of input tokens in Cursor by pre-staging targeted code context.",
+      "python_version": ">=3.10"
+    },
+    {
+      "index_key": "DayTrader",
+      "slug": "DayTrader",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\DayTrader",
+      "rel": "DayTrader",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "09ec524",
+        "last_commit_at": "2026-04-29T09:08:21-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 6,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 90,
+      "agent_summary": "Desktop day-trading and longer-horizon assistant: real-market data (yfinance), multi-strategy signals (classic TA, ORB/VWAP/gap, momentum, factor-tilt, and more), layered risk controls, optional 0DTE options module, path\u2026",
+      "python_version": ">=3.11"
+    },
+    {
+      "index_key": "deploy-systems",
+      "slug": "deploy-systems",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\deploy-systems",
+      "rel": "deploy-systems",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "895b5fb",
+        "last_commit_at": "2026-04-28T14:27:41-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 25,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "DroidForge",
+      "slug": "DroidForge",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\DroidForge",
+      "rel": "DroidForge",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "272559c",
+        "last_commit_at": "2026-04-28T14:57:37-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 60,
+      "agent_summary": "Local Android testing engine. Custom-built, no Android Studio middleware.",
+      "python_version": null
+    },
+    {
+      "index_key": "fleet-route-command",
+      "slug": "fleet-route-command",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\fleet-route-command",
+      "rel": "fleet-route-command",
+      "has_readme": true,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {
+        "last_commit": "23896a2",
+        "last_commit_at": "2026-05-01T00:24:59-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 4,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "Next.js app for multi-driver routes: pinned stops, Mapbox matrix optimization, CSV export, and share-ready route handoff.",
+      "python_version": null
+    },
+    {
+      "index_key": "flow_guarantee",
+      "slug": "flow_guarantee",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\flow_guarantee",
+      "rel": "flow_guarantee",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "gba_tester",
+      "slug": "gba_tester",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\gba_tester",
+      "rel": "gba_tester",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": ">=3.10"
+    },
+    {
+      "index_key": "gemini_analyzer",
+      "slug": "gemini_analyzer",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\gemini_analyzer",
+      "rel": "gemini_analyzer",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "de080f5",
+        "last_commit_at": "2026-04-15T02:51:10-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 60,
+      "agent_summary": "Parse, categorize, and extract code from your Google Gemini conversation exports.",
+      "python_version": null
+    },
+    {
+      "index_key": "gemini_coder",
+      "slug": "gemini_coder",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\gemini_coder",
+      "rel": "gemini_coder",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "gemini_coder_web",
+      "slug": "gemini_coder_web",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\gemini_coder_web",
+      "rel": "gemini_coder_web",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "88984b0",
+        "last_commit_at": "2026-05-02T05:31:52-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "AI-powered browser automation tool that sends coding tasks to Gemini (or any AI chat) via Chrome DevTools Protocol, then endlessly improves the generated code through iterative feedback loops.",
+      "python_version": null
+    },
+    {
+      "index_key": "GitHubAppManager",
+      "slug": "GitHubAppManager",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\GitHubAppManager",
+      "rel": "GitHubAppManager",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "9e55f7f",
+        "last_commit_at": "2026-04-30T18:50:38-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 40,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "gui_builder",
+      "slug": "gui_builder",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\gui_builder",
+      "rel": "gui_builder",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "home_net_control",
+      "slug": "home_net_control",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\home_net_control",
+      "rel": "home_net_control",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 50,
+      "agent_summary": "Local web UI to **track LAN devices** (from the ARP table), **block/unblock internet** manually, and **schedule deny windows** (recurring times when a device should not reach the internet).",
+      "python_version": null
+    },
+    {
+      "index_key": "kanban-board",
+      "slug": "kanban-board",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\kanban-board",
+      "rel": "kanban-board",
+      "has_readme": false,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 4,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "KidsCodeAcademy",
+      "slug": "KidsCodeAcademy",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\KidsCodeAcademy",
+      "rel": "KidsCodeAcademy",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "37e45dd",
+        "last_commit_at": "2026-05-04T20:11:58-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "A safe, offline coding tutorial for ages 7+. Teaches the same workflow grown-ups use with Claude, Cursor, and Gemini \u2014 but with a cartoon robot mascot, read-aloud audio, and mini-games instead of walls of text.",
+      "python_version": null
+    },
+    {
+      "index_key": "local_hub",
+      "slug": "local_hub",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\local_hub",
+      "rel": "local_hub",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "local_relay",
+      "slug": "local_relay",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\local_relay",
+      "rel": "local_relay",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 30,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "mousetraffic",
+      "slug": "mousetraffic",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\mousetraffic",
+      "rel": "mousetraffic",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "npm-bootstrap",
+      "slug": "npm-bootstrap",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\npm-bootstrap",
+      "rel": "npm-bootstrap",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "phantom_forge",
+      "slug": "phantom_forge",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\phantom_forge",
+      "rel": "phantom_forge",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 3,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "picontrol",
+      "slug": "picontrol",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\picontrol",
+      "rel": "picontrol",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "fe93d53",
+        "last_commit_at": "2026-04-25T03:12:56-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 55,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "pokefirered",
+      "slug": "pokefirered",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\pokefirered",
+      "rel": "pokefirered",
+      "has_readme": true,
+      "stack_tags": [
+        "gba-romdev"
+      ],
+      "git": {
+        "last_commit": "69e963f",
+        "last_commit_at": "2026-03-28T08:40:35-05:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "This is a decompilation of English Pok\u00e9mon FireRed and LeafGreen.",
+      "python_version": null
+    },
+    {
+      "index_key": "prompt_architect",
+      "slug": "prompt_architect",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\prompt_architect",
+      "rel": "prompt_architect",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "1f035a1",
+        "last_commit_at": "2026-04-19T09:48:41-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": true,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "A desktop tool that builds optimized, structured prompts for AI models \u2014 so you stop wasting tokens on bad prompts and start getting better results from Claude, ChatGPT, Gemini, and image/video generators.",
+      "python_version": null
+    },
+    {
+      "index_key": "prompt_router",
+      "slug": "prompt_router",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\prompt_router",
+      "rel": "prompt_router",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "proposals",
+      "slug": "proposals",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\proposals",
+      "rel": "proposals",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "rainforge",
+      "slug": "rainforge",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\rainforge",
+      "rel": "rainforge",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "4fbe179",
+        "last_commit_at": "2026-05-04T22:49:59-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "RainForge is a desktop + CLI toolkit for generating long-form rain ambience videos, thumbnails, and SEO metadata for YouTube publishing workflows.",
+      "python_version": ">=3.10"
+    },
+    {
+      "index_key": "rays_real_estate",
+      "slug": "rays_real_estate",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\rays_real_estate",
+      "rel": "rays_real_estate",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "8be975f",
+        "last_commit_at": "2026-04-15T02:54:18-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "A professional, cross-platform property management app with IRS Schedule E tax compliance. Single-file Python \u2014 runs on Windows, macOS, Linux, and Raspberry Pi with no build step.",
+      "python_version": null
+    },
+    {
+      "index_key": "rent_a_companion",
+      "slug": "rent_a_companion",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\rent_a_companion",
+      "rel": "rent_a_companion",
+      "has_readme": false,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 3,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "romhack_study",
+      "slug": "romhack_study",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\romhack_study",
+      "rel": "romhack_study",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "screen_agent",
+      "slug": "screen_agent",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\screen_agent",
+      "rel": "screen_agent",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "41eb86b",
+        "last_commit_at": "2026-04-21T01:43:51-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 55,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "sentinel",
+      "slug": "sentinel",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\sentinel",
+      "rel": "sentinel",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": ">=3.11"
+    },
+    {
+      "index_key": "session_clicker",
+      "slug": "session_clicker",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\session_clicker",
+      "rel": "session_clicker",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "6a36cc7",
+        "last_commit_at": "2026-04-26T12:32:30-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 60,
+      "agent_summary": "Record and replay up to **100** scripted desktop actions: timed clicks, moves, waits, key taps, and scroll \u2014 with **human-like pointer motion**, **per-step timing**, a **customizable kill switch**, and **JSON scripts** y\u2026",
+      "python_version": null
+    },
+    {
+      "index_key": "software_seeds",
+      "slug": "software_seeds",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\software_seeds",
+      "rel": "software_seeds",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "sprite_editor",
+      "slug": "sprite_editor",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\sprite_editor",
+      "rel": "sprite_editor",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "1e85418",
+        "last_commit_at": "2026-05-05T14:47:27-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 3,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "A pixel-art editor for 16-color GBA sprite PNG workflows, optimised for",
+      "python_version": ">=3.10"
+    },
+    {
+      "index_key": "stolenEauto",
+      "slug": "stolenEauto",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\stolenEauto",
+      "rel": "stolenEauto",
+      "has_readme": false,
+      "stack_tags": [],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 0,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "superfree-mcp",
+      "slug": "superfree-mcp",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\superfree-mcp",
+      "rel": "superfree-mcp",
+      "has_readme": true,
+      "stack_tags": [
+        "node",
+        "docker"
+      ],
+      "git": {
+        "last_commit": "0f51b08",
+        "last_commit_at": "2026-04-25T02:56:01-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 6,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 75,
+      "agent_summary": "A local MCP server that wraps ~56 high-value, zero-cost APIs as agent-callable tools.",
+      "python_version": null
+    },
+    {
+      "index_key": "SyncHub-repo-temp",
+      "slug": "SyncHub-repo-temp",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\SyncHub-repo-temp",
+      "rel": "SyncHub-repo-temp",
+      "has_readme": true,
+      "stack_tags": [],
+      "git": {
+        "last_commit": "cba179f",
+        "last_commit_at": "2026-04-25T20:14:40-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 0,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "Syncthing bootstrap for a cross-device **SyncHub** folder: install scripts, troubleshooting, and a **step-by-step linking guide** (pair devices, add the shared folder, same folder ID on every machine).",
+      "python_version": null
+    },
+    {
+      "index_key": "the-dev-squad",
+      "slug": "the-dev-squad",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\the-dev-squad",
+      "rel": "the-dev-squad",
+      "has_readme": true,
+      "stack_tags": [
+        "node"
+      ],
+      "git": {
+        "last_commit": "46f6323",
+        "last_commit_at": "2026-04-04T19:49:21-07:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 4,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 45,
+      "agent_summary": "> Give Claude a dev team in one workspace: one supervisor, four specialists, and a shared build doctrine that produces bulletproof plans before coding starts.",
+      "python_version": null
+    },
+    {
+      "index_key": "TypingSpeedTest",
+      "slug": "TypingSpeedTest",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\TypingSpeedTest",
+      "rel": "TypingSpeedTest",
+      "has_readme": false,
+      "stack_tags": [
+        "android"
+      ],
+      "git": {
+        "last_commit": "ca5561f",
+        "last_commit_at": "2026-05-04T22:46:57-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 40,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "vibe_coder",
+      "slug": "vibe_coder",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\vibe_coder",
+      "rel": "vibe_coder",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {},
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 15,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "video_trimmer",
+      "slug": "video_trimmer",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\video_trimmer",
+      "rel": "video_trimmer",
+      "has_readme": false,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "dda98c4",
+        "last_commit_at": "2026-04-21T06:03:55-04:00"
+      },
+      "is_nested": false,
+      "build_hint_count": 1,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 40,
+      "agent_summary": "",
+      "python_version": null
+    },
+    {
+      "index_key": "VideoTranscriber",
+      "slug": "VideoTranscriber",
+      "path": "C:\\Users\\computer\\Desktop\\AI\\VideoTranscriber",
+      "rel": "VideoTranscriber",
+      "has_readme": true,
+      "stack_tags": [
+        "python"
+      ],
+      "git": {
+        "last_commit": "d82a2df",
+        "last_commit_at": "2026-04-30T18:22:08-04:00",
+        "dirty": true
+      },
+      "is_nested": false,
+      "build_hint_count": 2,
+      "has_agent_files": false,
+      "has_curated_override": false,
+      "health_score": 60,
+      "agent_summary": "Offline, free, local video and audio transcription using [faster-whisper](https://github.com/SYSTRAN/faster-whisper). No cloud APIs. No API keys. Works without internet after the first model download.",
+      "python_version": null
+    }
+  ]
+}

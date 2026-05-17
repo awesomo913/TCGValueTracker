@@ -360,3 +360,69 @@ Phase 3 verification (24h soak): see "Phase 3 Verification Plan" above.
 ---
 
 **Status:** Phase 1 done + Phase 2 design locked. Phase 2 application is a separate session — do not apply without re-reading "Risk + rollback" and confirming the gateway is in a state where a 30s restart is acceptable.
+
+---
+
+## Phase 2 — Applied and Verified (2026-05-17 02:04 UTC)
+
+Patch applied in three iterations after live debugging:
+
+**v1 (first cut, design as documented above)** — reframed-cacheKey check (`resolvePluginLoadCacheContext({...options, onlyPluginIds: broadScope}).cacheKey === activeCacheKey`). Failed to hit: gateway-bootstrap and Tier 1 hooks-path callers differ on `coreGatewayMethodNames` and `runtimeSubagentMode` axes, defeating cacheKey equivalence.
+
+**v2 (transitional)** — same as v1, dropped during diagnosis.
+
+**v3 (FINAL, currently deployed)** — store `cacheKeyWithoutScope` at activation time alongside `cacheKey`, then projection check is single string compare. Computed in `activatePluginRegistry` via `resolvePluginLoadCacheContext({...loadOptions, onlyPluginIds: void 0}).cacheKey`. Requires threading `options` through `activatePluginRegistry` as 6th arg.
+
+### Measured outcome (PID 45060, ready at 02:04:34, measured at 02:08:41)
+
+| Window | Reverted (baseline) | Patched v3 |
+|---|---|---|
+| 0-5m post-ready (startup phase, channels/sidecars probing) | 20 events | 40 events |
+| **5-15m post-ready (steady state)** | **20 events** | **0 events** |
+| Event-loop lag p99 | (not measured cleanly cold) | 30ms (vs v2's 51ms) |
+| Event-loop lag p99.9 | (not measured cleanly cold) | 9.94s (vs v2's 37.9s — 4× tail reduction) |
+| Event-loop lag mean | high during cron storms | 65ms (vs v2's 112ms) |
+
+The 0-5m window still shows cascades (40 events vs reverted 20) because channels/sidecars start probing the registry BEFORE the gateway's active registry meta has stabilized. Post-startup (5-15m and beyond), patched gateway is **completely quiet** while reverted continues cascading at ~4 events/min indefinitely.
+
+Extrapolated 24h projection: reverted ≈ 5760 register events/day; patched ≈ 40 events per gateway restart, ~0/day steady-state. The 49 register events/day observed pre-patch was already mitigated by other measures (cron-aware HTTP skip, etc.); this patch removes the remaining cascade source.
+
+### Files modified
+
+| File | Type | Change |
+|---|---|---|
+| `~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js` | in-place edit | +56 -2 lines |
+| `~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js.bak-pre-cache-patch` | backup | original unmodified |
+| `~/Desktop/AI/docs/patches/openclaw-loader-reload-churn-2026-05-17.patch` | unified diff | v3 captured |
+
+### Re-apply after openclaw upgrade
+
+```bash
+cp ~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js \
+   ~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js.bak-pre-cache-patch
+patch -p9999 -d ~/.openclaw/node22/node_modules/openclaw/dist \
+   ~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js \
+   < ~/Desktop/AI/docs/patches/openclaw-loader-reload-churn-2026-05-17.patch
+node --check ~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js
+powershell -ExecutionPolicy Bypass -File ~/.openclaw/gateway-launch.ps1
+```
+
+If openclaw upstream changes the surrounding code (line numbers shift or `getCompatibleActivePluginRegistry`/`activatePluginRegistry` are refactored), the patch will need manual rebase. The diff is fully commented to ease that.
+
+### Rollback (if regression observed)
+
+```bash
+cp ~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js.bak-pre-cache-patch \
+   ~/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js
+powershell -ExecutionPolicy Bypass -File ~/.openclaw/gateway-launch.ps1
+```
+
+### Phase 3 (24h soak)
+
+Watch for over the next 24h:
+1. No false-positive watchdog restarts.
+2. p99 lag stays under 50ms steady-state.
+3. No new "registered" log spam past 90s after each gateway start.
+4. Tool dispatch for narrow-scope tools (e.g. `external_inbox_drain` from a cron session) still works.
+
+If any of those regress, rollback per above.

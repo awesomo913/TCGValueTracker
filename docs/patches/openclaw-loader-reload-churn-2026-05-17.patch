@@ -1,0 +1,106 @@
+--- /c/Users/computer/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js.bak-pre-cache-patch	2026-05-17 01:11:08.308074700 -0400
++++ /c/Users/computer/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js	2026-05-17 02:00:56.418864400 -0400
+@@ -2401,6 +2401,40 @@
+ 	}
+ 	return merged.length === runtimeList.length ? runtimeList : merged;
+ }
++// Reload-churn patch (2026-05-17): track scope of the active registry so narrow-scope
++// requests can be served from the broad active registry via projection. See
++// Desktop/AI/docs/2026-05-17_reload-churn-callsites.md.
++// Stores cacheKey (for staleness check) + cacheKeyWithoutScope (for projection equivalence
++// check, computed by resolving the load context with onlyPluginIds stripped).
++let activeRegistryScopeMeta = null;
++function getActiveRegistryScopeMetaLocal() {
++	const meta = activeRegistryScopeMeta;
++	if (!meta) return null;
++	if (meta.cacheKey !== getActivePluginRegistryKey()) return null;
++	return meta;
++}
++function isPluginIdSuperset(broader, narrower) {
++	if (!broader || broader.length === 0) return true;
++	const set = new Set(broader);
++	for (const id of narrower) if (!set.has(id)) return false;
++	return true;
++}
++function projectRegistryToScope(registry, onlyPluginIds) {
++	if (!onlyPluginIds || onlyPluginIds.length === 0) return registry;
++	const scope = new Set(onlyPluginIds);
++	const projected = { ...registry };
++	for (const [key, value] of Object.entries(registry)) {
++		if (!Array.isArray(value) || value.length === 0) continue;
++		const sample = value.find((entry) => entry !== null && typeof entry === "object");
++		if (!sample) continue;
++		if (typeof sample.pluginId === "string") {
++			projected[key] = value.filter((entry) => entry && scope.has(entry.pluginId));
++		} else if (key === "plugins" && typeof sample.id === "string") {
++			projected[key] = value.filter((entry) => entry && scope.has(entry.id));
++		}
++	}
++	return projected;
++}
+ function getCompatibleActivePluginRegistry(options = {}) {
+ 	const activeRegistry = getActivePluginRegistry() ?? void 0;
+ 	if (!activeRegistry) return;
+@@ -2434,6 +2468,21 @@
+ 			}).cacheKey === activeCacheKey) return activeRegistry;
+ 		}
+ 	}
++	// Reload-churn patch: superset-projection fallback. The active registry was loaded
++	// with some onlyPluginIds set and a set of other inputs (activate, runtimeSubagentMode,
++	// coreGatewayMethodNames, etc) that differs from this narrow-scope request. We can
++	// still satisfy the request by projecting the active registry IF every input except
++	// onlyPluginIds matches. We check that via a pre-computed scope-stripped cacheKey
++	// stored at activation time — comparing strings, not reframing.
++	const activeMeta = getActiveRegistryScopeMetaLocal();
++	const requestOnlyIds = loadContext.onlyPluginIds;
++	if (activeMeta && requestOnlyIds && requestOnlyIds.length > 0 && isPluginIdSuperset(activeMeta.onlyPluginIds, requestOnlyIds)) {
++		const requestCacheKeyWithoutScope = resolvePluginLoadCacheContext({
++			...options,
++			onlyPluginIds: void 0
++		}).cacheKey;
++		if (requestCacheKeyWithoutScope === activeMeta.cacheKeyWithoutScope) return projectRegistryToScope(activeRegistry, requestOnlyIds);
++	}
+ }
+ function resolveRuntimePluginRegistry(options) {
+ 	if (!options || !hasExplicitCompatibilityInputs(options)) return getCompatibleActivePluginRegistry();
+@@ -2831,9 +2880,21 @@
+ 		if (params.emitWarning) params.logger.warn(`[plugins] ${plugin.id}: ${message} (${plugin.source})`);
+ 	}
+ }
+-function activatePluginRegistry(registry, cacheKey, runtimeSubagentMode, workspaceDir) {
++function activatePluginRegistry(registry, cacheKey, runtimeSubagentMode, workspaceDir, onlyPluginIds, loadOptions) {
+ 	const preserveGatewayHookRunner = runtimeSubagentMode === "default" && getActivePluginRuntimeSubagentMode() === "gateway-bindable" && getGlobalHookRunner() !== null;
+ 	setActivePluginRegistry(registry, cacheKey, runtimeSubagentMode, workspaceDir);
++	// Reload-churn patch (2026-05-17): track active registry scope + the scope-stripped
++	// cacheKey for projection-equivalence checks in getCompatibleActivePluginRegistry.
++	let cacheKeyWithoutScope = null;
++	try {
++		cacheKeyWithoutScope = resolvePluginLoadCacheContext({
++			...(loadOptions || {}),
++			onlyPluginIds: void 0
++		}).cacheKey;
++	} catch {
++		cacheKeyWithoutScope = null;
++	}
++	activeRegistryScopeMeta = { cacheKey, onlyPluginIds, cacheKeyWithoutScope };
+ 	if (!preserveGatewayHookRunner) initializeGlobalHookRunner(registry);
+ }
+ function loadOpenClawPlugins(options = {}) {
+@@ -2860,7 +2921,7 @@
+ 					flushPlanResolver: cached.memoryFlushPlanResolver,
+ 					runtime: cached.memoryRuntime
+ 				});
+-				activatePluginRegistry(cached.registry, cacheKey, runtimeSubagentMode, options.workspaceDir);
++				activatePluginRegistry(cached.registry, cacheKey, runtimeSubagentMode, options.workspaceDir, onlyPluginIds, options);
+ 			}
+ 			return cached.registry;
+ 		}
+@@ -3605,7 +3666,7 @@
+ 			memoryPromptSupplements: listMemoryPromptSupplements(),
+ 			memoryRuntime: getMemoryRuntime()
+ 		});
+-		if (shouldActivate) activatePluginRegistry(registry, cacheKey, runtimeSubagentMode, options.workspaceDir);
++		if (shouldActivate) activatePluginRegistry(registry, cacheKey, runtimeSubagentMode, options.workspaceDir, onlyPluginIds, options);
+ 		return registry;
+ 	} finally {
+ 		inFlightPluginRegistryLoads.delete(cacheKey);

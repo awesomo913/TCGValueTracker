@@ -59,6 +59,18 @@ specifications. **Last review: 2026-05-17.**
 
 ## Changelog
 
+### 2026-05-17 (late evening) — New chats now stay on Gemini Pro
+
+When Autocoder rotated to a fresh chat, the page reloaded without
+the "Pro" model preference, dropping back to the default model
+(Flash). The conversation that prompted the rotation had been on
+Pro; the next one wasn't. For paid Pro workflows that meant losing
+the better model on every rotation — quietly.
+
+The fix updates the fresh-chat URL Autocoder navigates to so that
+"Pro" stays selected. Every new conversation Autocoder opens is now
+the same model the user is paying for.
+
 ### 2026-05-17 (evening) — Autocoder now waits twice as long for Gemini to finish writing
 
 Before this fix, Autocoder gave Gemini five minutes to finish each

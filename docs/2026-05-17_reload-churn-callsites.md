@@ -371,21 +371,36 @@ Patch applied in three iterations after live debugging:
 
 **v2 (transitional)** — same as v1, dropped during diagnosis.
 
-**v3 (FINAL, currently deployed)** — store `cacheKeyWithoutScope` at activation time alongside `cacheKey`, then projection check is single string compare. Computed in `activatePluginRegistry` via `resolvePluginLoadCacheContext({...loadOptions, onlyPluginIds: void 0}).cacheKey`. Requires threading `options` through `activatePluginRegistry` as 6th arg.
+**v3** — store `cacheKeyWithoutScope` at activation time alongside `cacheKey`, then projection check is single string compare. Computed in `activatePluginRegistry` via `resolvePluginLoadCacheContext({...loadOptions, onlyPluginIds: void 0}).cacheKey`. Requires threading `options` through `activatePluginRegistry` as 6th arg. Steady-state 0 events; startup 40 events; boot ~3min.
 
-### Measured outcome (PID 45060, ready at 02:04:34, measured at 02:08:41)
+**v4** — added a second variant `cacheKeyForHooksProjection` (activate=false, runtimeOptions.allowGatewaySubagentBinding=false, coreGatewayHandlers={}). Caught hook-path readers that v3 missed. Startup events dropped 40→30; boot still ~3min.
 
-| Window | Reverted (baseline) | Patched v3 |
-|---|---|---|
-| 0-5m post-ready (startup phase, channels/sidecars probing) | 20 events | 40 events |
-| **5-15m post-ready (steady state)** | **20 events** | **0 events** |
-| Event-loop lag p99 | (not measured cleanly cold) | 30ms (vs v2's 51ms) |
-| Event-loop lag p99.9 | (not measured cleanly cold) | 9.94s (vs v2's 37.9s — 4× tail reduction) |
-| Event-loop lag mean | high during cron storms | 65ms (vs v2's 112ms) |
+**v5 (FINAL, currently deployed)** — replaced the discrete variants with a pre-computed Set of 8 projection-cacheKey variants spanning every combination of (activate, allowGatewaySubagentBinding, coreGatewayHandlers∈{actual,empty}). One-time cost at activation; projection check is Set membership. Boot dropped to 1m19s; startup events split 10+30 instead of bunched 40.
 
-The 0-5m window still shows cascades (40 events vs reverted 20) because channels/sidecars start probing the registry BEFORE the gateway's active registry meta has stabilized. Post-startup (5-15m and beyond), patched gateway is **completely quiet** while reverted continues cascading at ~4 events/min indefinitely.
+### Measured outcome (final: v5, PID 41268, ready at 02:30:42, measured at 02:36:10)
 
-Extrapolated 24h projection: reverted ≈ 5760 register events/day; patched ≈ 40 events per gateway restart, ~0/day steady-state. The 49 register events/day observed pre-patch was already mitigated by other measures (cron-aware HTTP skip, etc.); this patch removes the remaining cascade source.
+| Window | Reverted (baseline) | Patched v3 | Patched v5 (final) |
+|---|---|---|---|
+| 0-2m post-ready | 0 | 40 | **10** |
+| 2-5m post-ready | 20 | 0 | 30 |
+| **5-15m post-ready (steady state)** | **20** | **0** | **0** |
+| 0-15m total | 40 | 40 | 40 |
+| Boot time (launch → endpoint healthy) | ~3min | ~3min | **1m19s** |
+| Event-loop lag p99 (5min uptime) | n/a | 30ms | 46ms |
+| Event-loop lag p99.9 | n/a | 9.94s | 28.7s |
+| Event-loop lag mean | n/a | 65ms | 68ms |
+
+Total events over 0-15m is unchanged from v3 (40) — v5 redistributes the cascade and dramatically reduces boot time. The 30 events in v5's 2-5m window are 3 cron-job-fired loads (see Residual below).
+
+Post-startup (5-15m and beyond), patched gateway is **completely quiet** while reverted continues cascading at ~4 events/min indefinitely.
+
+Extrapolated 24h projection: reverted ≈ 5760 register events/day; patched ≈ 40 events per gateway restart, ~0/day steady-state.
+
+### Residual: 3 cron-fired cascades per restart (~30 events in 2-5m window)
+
+Each cron job fired post-ready (3 jobs run at startup, then mutex serializes) triggers a single full-cascade plugin reload. These bypass the projection because the cron-agent execution path likely goes through `providers.runtime-w64xsk4r.js:157` — the SETUP-mode branch that calls `loadOpenClawPlugins` directly, **bypassing `resolveRuntimePluginRegistry`** and therefore `getCompatibleActivePluginRegistry` where my projection lives.
+
+To eliminate these would require a second patch site at `providers.runtime-w64xsk4r.js:157`. That changes the semantics of setup-mode reads (they currently always force a fresh load with `cache: ?`) and carries higher correctness risk. Defer until a separate cycle.
 
 ### Files modified
 

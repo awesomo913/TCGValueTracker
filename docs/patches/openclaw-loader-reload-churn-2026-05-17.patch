@@ -1,5 +1,5 @@
 --- /c/Users/computer/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js.bak-pre-cache-patch	2026-05-17 01:11:08.308074700 -0400
-+++ /c/Users/computer/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js	2026-05-17 02:00:56.418864400 -0400
++++ /c/Users/computer/.openclaw/node22/node_modules/openclaw/dist/loader-NucjcOgv.js	2026-05-17 02:28:56.039614600 -0400
 @@ -2401,6 +2401,40 @@
  	}
  	return merged.length === runtimeList.length ? runtimeList : merged;
@@ -41,29 +41,28 @@
  function getCompatibleActivePluginRegistry(options = {}) {
  	const activeRegistry = getActivePluginRegistry() ?? void 0;
  	if (!activeRegistry) return;
-@@ -2434,6 +2468,21 @@
+@@ -2434,6 +2468,20 @@
  			}).cacheKey === activeCacheKey) return activeRegistry;
  		}
  	}
 +	// Reload-churn patch: superset-projection fallback. The active registry was loaded
-+	// with some onlyPluginIds set and a set of other inputs (activate, runtimeSubagentMode,
-+	// coreGatewayMethodNames, etc) that differs from this narrow-scope request. We can
-+	// still satisfy the request by projecting the active registry IF every input except
-+	// onlyPluginIds matches. We check that via a pre-computed scope-stripped cacheKey
-+	// stored at activation time — comparing strings, not reframing.
++	// with some onlyPluginIds set and a specific combo of activation axes. We can serve
++	// any narrow-scope read request whose scope is a subset of the active scope AND
++	// whose activation-axis cacheKey is in our pre-computed projectionCacheKeys set
++	// (built at activation time across all realistic axis combinations).
 +	const activeMeta = getActiveRegistryScopeMetaLocal();
 +	const requestOnlyIds = loadContext.onlyPluginIds;
-+	if (activeMeta && requestOnlyIds && requestOnlyIds.length > 0 && isPluginIdSuperset(activeMeta.onlyPluginIds, requestOnlyIds)) {
++	if (activeMeta && activeMeta.projectionCacheKeys && requestOnlyIds && requestOnlyIds.length > 0 && isPluginIdSuperset(activeMeta.onlyPluginIds, requestOnlyIds)) {
 +		const requestCacheKeyWithoutScope = resolvePluginLoadCacheContext({
 +			...options,
 +			onlyPluginIds: void 0
 +		}).cacheKey;
-+		if (requestCacheKeyWithoutScope === activeMeta.cacheKeyWithoutScope) return projectRegistryToScope(activeRegistry, requestOnlyIds);
++		if (activeMeta.projectionCacheKeys.has(requestCacheKeyWithoutScope)) return projectRegistryToScope(activeRegistry, requestOnlyIds);
 +	}
  }
  function resolveRuntimePluginRegistry(options) {
  	if (!options || !hasExplicitCompatibilityInputs(options)) return getCompatibleActivePluginRegistry();
-@@ -2831,9 +2880,21 @@
+@@ -2831,9 +2879,40 @@
  		if (params.emitWarning) params.logger.warn(`[plugins] ${plugin.id}: ${message} (${plugin.source})`);
  	}
  }
@@ -71,22 +70,41 @@
 +function activatePluginRegistry(registry, cacheKey, runtimeSubagentMode, workspaceDir, onlyPluginIds, loadOptions) {
  	const preserveGatewayHookRunner = runtimeSubagentMode === "default" && getActivePluginRuntimeSubagentMode() === "gateway-bindable" && getGlobalHookRunner() !== null;
  	setActivePluginRegistry(registry, cacheKey, runtimeSubagentMode, workspaceDir);
-+	// Reload-churn patch (2026-05-17): track active registry scope + the scope-stripped
-+	// cacheKey for projection-equivalence checks in getCompatibleActivePluginRegistry.
-+	let cacheKeyWithoutScope = null;
++	// Reload-churn patch (2026-05-17 v5): pre-compute projection-equivalent cacheKey
++	// variants for every realistic narrow-caller activation profile. Narrow callers
++	// (provider hooks, subagent dispatch, capability readers) come in with various
++	// combinations of activate/allowGatewaySubagentBinding/coreGatewayHandlers but
++	// always share the gateway's underlying plugin set. We store the full set of
++	// activation-axis variants here (one-time at activation) and let the projection
++	// branch in getCompatibleActivePluginRegistry check via Set membership.
++	const projectionCacheKeys = new Set();
 +	try {
-+		cacheKeyWithoutScope = resolvePluginLoadCacheContext({
-+			...(loadOptions || {}),
-+			onlyPluginIds: void 0
-+		}).cacheKey;
++		const baseOpts = loadOptions || {};
++		for (const activate of [true, false]) {
++			for (const allowGsb of [true, false]) {
++				for (const emptyHandlers of [false, true]) {
++					const ck = resolvePluginLoadCacheContext({
++						...baseOpts,
++						onlyPluginIds: void 0,
++						activate,
++						coreGatewayHandlers: emptyHandlers ? {} : baseOpts.coreGatewayHandlers,
++						runtimeOptions: {
++							...(baseOpts.runtimeOptions || {}),
++							allowGatewaySubagentBinding: allowGsb
++						}
++					}).cacheKey;
++					if (ck) projectionCacheKeys.add(ck);
++				}
++			}
++		}
 +	} catch {
-+		cacheKeyWithoutScope = null;
++		// Defensive: leave empty set, projection branch fails safely closed.
 +	}
-+	activeRegistryScopeMeta = { cacheKey, onlyPluginIds, cacheKeyWithoutScope };
++	activeRegistryScopeMeta = { cacheKey, onlyPluginIds, projectionCacheKeys };
  	if (!preserveGatewayHookRunner) initializeGlobalHookRunner(registry);
  }
  function loadOpenClawPlugins(options = {}) {
-@@ -2860,7 +2921,7 @@
+@@ -2860,7 +2939,7 @@
  					flushPlanResolver: cached.memoryFlushPlanResolver,
  					runtime: cached.memoryRuntime
  				});
@@ -95,7 +113,7 @@
  			}
  			return cached.registry;
  		}
-@@ -3605,7 +3666,7 @@
+@@ -3605,7 +3684,7 @@
  			memoryPromptSupplements: listMemoryPromptSupplements(),
  			memoryRuntime: getMemoryRuntime()
  		});

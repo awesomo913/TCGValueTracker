@@ -59,6 +59,19 @@ specifications. **Last review: 2026-05-17.**
 
 ## Changelog
 
+### 2026-05-17 (evening) — Autocoder now waits twice as long for Gemini to finish writing
+
+Before this fix, Autocoder gave Gemini five minutes to finish each
+answer. That was enough at the start of a conversation, but Gemini
+slows down as the conversation gets longer. By the third or fourth
+back-and-forth in the same chat, answers were taking more than five
+minutes — Autocoder cut them off mid-sentence and threw away the
+partial text. Roughly four out of every ten tries were being wasted.
+
+The fix doubles the wait to ten minutes. Paired with a tuned setting
+that keeps each chat to about three back-and-forths before starting
+a fresh one, almost every try now finishes and gets saved.
+
 ### 2026-05-17 — Autocoder reuses the same Gemini chat instead of opening a new one every time
 
 Before today, the program opened a brand new Gemini chat for every

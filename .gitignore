@@ -1,0 +1,11 @@
+# Ignore nested git repositories and common cache/venv
+__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+*.egg-info/
+*.spec
+SyncHub-repo-temp/
+nul
+uv.lock

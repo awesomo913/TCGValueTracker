@@ -77,6 +77,26 @@ launches the latest version every time. The whole thing fits in one
 
 ## Changelog
 
+- **May 18, 2026 — v2.9.0.** Added an "Ask AI" tab in the Help Hub.
+  The editor can now talk to DeepSeek (a chat AI service) over the
+  internet to answer free-form questions a sprite artist might have.
+  Replies stream in word by word, can be read aloud through the
+  same voice the editor already uses, and the running daily cost
+  is shown in the chat header so you always know what you've spent.
+  The system was split in two: the editor reads its instructions
+  and rules from a separate folder on disk (Quasar) — meaning you
+  can tweak the AI's tone, switch models, or add new abilities just
+  by editing files in `C:\Quasar\sprite_editor_ai\`, then clicking
+  "Reload AI Config" inside the chat.  No AI keys are ever stored
+  inside the program file; the editor reads them from a Windows
+  environment variable so the same key never accidentally ships
+  with the program.  When the AI service fails for any reason, the
+  editor drops a small diagnostic file in Quasar's inbox and waits
+  up to 30 seconds for a suggested fix to appear before showing a
+  generic help message.  This is Phase 1 of three; future updates
+  will give the AI awareness of the sprite you're currently editing
+  (Phase 2) and the ability to perform editor actions on your
+  behalf with confirmation prompts (Phase 3).
 - **May 18, 2026 — v2.8.1.** Sharpened the six tool icons on high-
   resolution monitors and added a searchable Help Hub FAQ tab with
   22 plain-English answers (undo, transparency, sprite sizes, voice,

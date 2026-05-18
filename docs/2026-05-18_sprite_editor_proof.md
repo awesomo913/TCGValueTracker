@@ -77,6 +77,29 @@ launches the latest version every time. The whole thing fits in one
 
 ## Changelog
 
+- **May 18, 2026 — v2.11.0.**  Added slash-style commands to the AI
+  chat.  Type `/help` to see them, `/state` to see what the AI knows
+  about your current sprite, `/clear` to wipe the conversation,
+  `/save` to write the transcript to disk, `/reload` after editing
+  the AI's instructions in Quasar, `/edit-prompt` to open those
+  instructions in your default editor, and `/patch some-name` to
+  write the last AI reply into Quasar's review folder so you can
+  approve or reject it like a pull request.  None of these
+  commands cost API tokens — they all run locally.
+- **May 18, 2026 — v2.10.2.**  Wired up two alternative places to
+  open the chat: a floating window (Command Palette → "Ask AI
+  Floating Window") and a right-side dock (Command Palette →
+  "Toggle Ask AI Dock").  The chat works the same in all three
+  hosts because they share one ChatPanel widget.  Also patched a
+  background voice race and tightened a regex so a truncated AI
+  reply can't freeze the UI.
+- **May 18, 2026 — v2.10.1.**  Fixed two voice issues caught in
+  live testing: the AI no longer reads every reply aloud by
+  default — you click a 🔊 button on the reply you want to hear,
+  and the editor strips code blocks, file paths, and URLs before
+  speaking so the voice only reads the prose.  Also added a big
+  red "Stop Voice" button at the top of the chat that always
+  works, no matter what's playing.
 - **May 18, 2026 — v2.10.0.**  The chat AI now knows what sprite
   you're working on.  Every question you send to the AI also carries
   (in the background) a short list of facts about your editor — the

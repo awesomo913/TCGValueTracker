@@ -77,6 +77,35 @@ launches the latest version every time. The whole thing fits in one
 
 ## Changelog
 
+- **May 18, 2026 — v2.12.2 (export pipeline hardening).**  No new
+  features.  Built the inverse readers for the export pipeline (JASC
+  palette importer + 4bpp tile unpacker) and wrote 11 round-trip
+  tests.  The whole Save → JASC-PAL → 4bpp → LZ77 → reload chain now
+  has byte-equal verification, including end-to-end on a real
+  Pokemon sprite (Abomasnow Mega front, 64×64).  Any future change
+  that breaks the export pipeline will fail tests instead of
+  silently corrupting saved sprites.
+- **May 18, 2026 — v2.12.1 (engine glitches that survived
+  v2.12.0).**  Five more visual bugs patched after live testing:
+  1. The palette panel no longer reads as "all black" when no
+     sprite is loaded.  Empty swatches got a brighter background
+     (#3a3a3a vs the #1c1c1c panel), and any transparent palette
+     entry now shows the universal checkerboard pattern instead of
+     a white X.
+  2. The hover-flicker on the help tooltip is gone — pulled the
+     "always-on-top" attribute that was causing the tooltip to
+     overlap its own trigger button.
+  3. The status bar dividers between sections were too dim and
+     now use a brighter gray (8.5:1 contrast).
+  4. The "random floating text" leaking from the left Sprites
+     panel into the canvas at narrow window widths is fixed —
+     pinned the left column to a hard 220-pixel width so its
+     children can't push past it.  Also renamed "Load Directory"
+     to "Load Folder" so the button comfortably fits.
+  5. Tool icons are back as real 32-pixel PNG assets (pencil,
+     eraser, fill, picker, line, select) committed to the repo
+     instead of being redrawn at runtime.  No more compression
+     glitch at small sizes.
 - **May 18, 2026 — v2.12.0 (engine correctness release).**  No new
   features.  Halted polish work and fixed five real bugs in the
   underlying engine:

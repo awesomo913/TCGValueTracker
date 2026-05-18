@@ -77,6 +77,45 @@ launches the latest version every time. The whole thing fits in one
 
 ## Changelog
 
+- **May 18, 2026 — v2.12.0 (engine correctness release).**  No new
+  features.  Halted polish work and fixed five real bugs in the
+  underlying engine:
+  1. Pokemon sprites and overworld sprites were loading with
+     opaque pale-green or black backgrounds because the editor
+     wasn't honoring the GBA convention that "palette index 0
+     means transparent."  Now every sprite loads with index 0
+     correctly mapped to fully transparent.  Every part of the
+     editor that opens a PNG now goes through one shared loader
+     so they all behave the same way.
+  2. The editor was talking out loud every time you switched
+     tools, loaded a sprite, toggled GBA mode, or saved a file.
+     Voice now only speaks when you explicitly ask for it:
+     Ctrl+Shift+M to read sprite info, the speaker button on an
+     AI reply, or a tutorial Play button.  Nothing else triggers
+     voice anymore.
+  3. The floating "? Help (F1)" button at the top-right was
+     flickering on hover because its position didn't survive
+     when the window resized.  Replaced it with a regular Help
+     button at the right end of the top toolbar where it can't
+     flicker.
+  4. The tiny pink Eraser icon (and the five other tool icons)
+     compressed at 18 pixels into illegible blurry stripes that
+     looked like broken assets.  Dropped the icon images and now
+     just show the tool names plus their keyboard shortcut.
+  5. Status bar text was using a system default gray on a near-
+     black background which failed accessibility contrast.
+     Pinned the bar to a known background (#0d0d0d) and a known
+     text color (#f0f0f0) — 16.7:1 contrast, well above the
+     4.5:1 accessibility floor.  All other text/background
+     combinations in the editor now have unit tests verifying
+     they meet WCAG AA contrast too.
+- **May 18, 2026 — v2.11.1.**  Added 10 more pieces of context the AI
+  receives — full file path, canvas width and height, zoom level,
+  all 16 palette colors, currently-selected color index, grid state,
+  auto-save state — so the AI can answer questions about your
+  specific sprite.  Also added a 💾 "Send as Quasar Patch" button
+  next to the 🔊 button on every AI reply for one-click patch
+  drafting.
 - **May 18, 2026 — v2.11.0.**  Added slash-style commands to the AI
   chat.  Type `/help` to see them, `/state` to see what the AI knows
   about your current sprite, `/clear` to wipe the conversation,

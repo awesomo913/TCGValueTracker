@@ -77,6 +77,23 @@ launches the latest version every time. The whole thing fits in one
 
 ## Changelog
 
+- **May 18, 2026 — v2.10.0.**  The chat AI now knows what sprite
+  you're working on.  Every question you send to the AI also carries
+  (in the background) a short list of facts about your editor — the
+  filename, the size, how many colors are in it, the five most-used
+  colors, which drawing tool is active, whether GBA mode is on, and
+  how deep the undo history is.  That means you can ask "why is my
+  palette index 0 magenta?" or "why does this look so flat?" and the
+  AI answers with reference to *your* sprite, not a generic one.
+  Also added an AI Settings tab inside Help Hub so you can change
+  the daily cost cap, switch where the API key is read from, and
+  open the DeepSeek key-rotation page with one click.
+- **May 18, 2026 — v2.9.1.**  Two small UX fixes after live testing:
+  double-clicking the desktop shortcut while the editor is already
+  running now brings the existing window forward instead of opening
+  a duplicate, and there's a small floating "? Help (F1)" button at
+  the top-right of the editor so Help is always reachable even if
+  you resize the window narrow.
 - **May 18, 2026 — v2.9.0.** Added an "Ask AI" tab in the Help Hub.
   The editor can now talk to DeepSeek (a chat AI service) over the
   internet to answer free-form questions a sprite artist might have.

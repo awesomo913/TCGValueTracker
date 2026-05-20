@@ -77,6 +77,22 @@ launches the latest version every time. The whole thing fits in one
 
 ## Changelog
 
+- **May 20, 2026 — v2.13.0 (history rework + speed + palette UX).**
+  Fixed the two biggest complaints.  (1) Editing was slow because the
+  timeline regenerated every history thumbnail on every brush stroke;
+  now thumbnails are cached so a stroke only makes one.  (2) Undo used
+  to "lose your future" — going back then drawing wiped the edits you'd
+  scrubbed past, and even just scrubbing back made them vanish from the
+  timeline.  History is now one timeline with a marker: going back keeps
+  the forward edits visible (dimmed) and reachable; only a brand-new
+  edit replaces them.  Also added: number-key shortcuts to pick palette
+  colours (1-9 for slots 1-9, 0 for slot 10), a recent-colours bar above
+  the canvas, a big current-colour chip with its hex code, a bright gold
+  ring on the selected colour, and a little colour dot that follows your
+  cursor so you always know what you'll paint.
+- **May 20, 2026 — v2.12.3.**  Three leftover glitches: tools now change
+  the mouse cursor when selected, the help tooltips stopped flickering,
+  and the palette swatches stopped jittering on hover.
 - **May 18, 2026 — v2.12.2 (export pipeline hardening).**  No new
   features.  Built the inverse readers for the export pipeline (JASC
   palette importer + 4bpp tile unpacker) and wrote 11 round-trip

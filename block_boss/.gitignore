@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Block Boss runtime data (lives under BLOCK_BOSS_HOME, never in repo)
+.devhome/
+logs/
+backups/
+pin.hash
+bedrock-server/
+bedrockconnect/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

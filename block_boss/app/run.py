@@ -21,4 +21,14 @@ bc = BedrockConnectSupervisor(
     cwd=cfg.home / "bedrockconnect",
 )
 
+# Start the Switch DNS helper at boot so consoles can reach the server.
+# If Java or the jar is missing, keep the dashboard up; the Switch panel will
+# simply show BedrockConnect as offline.
+try:
+    bc.start()
+    log.state("bedrockconnect", "started")
+except Exception as exc:  # noqa: BLE001 - dashboard must boot regardless
+    log.crash(exc)
+    log.decision("bedrockconnect failed to start; dashboard shows it offline")
+
 app = create_app(cfg, server, bc)

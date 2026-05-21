@@ -63,8 +63,9 @@ def create_app(cfg: Config, server, bc) -> FastAPI:
     @app.post("/api/restore")
     def restore(name: str = Body(..., embed=True), pin: str = Body(default="", embed=True)):
         _require_pin(cfg, pin)
-        src = cfg.backups_dir / name
-        if not src.is_dir():
+        src = (cfg.backups_dir / name).resolve()
+        backups_root = cfg.backups_dir.resolve()
+        if backups_root not in src.parents or not src.is_dir():
             raise HTTPException(status_code=404, detail="backup not found")
         if server.status == Status.RUNNING:
             server.stop()
@@ -108,6 +109,9 @@ def create_app(cfg: Config, server, bc) -> FastAPI:
                     {"status": server.status.value, "players": server.players})
                 await asyncio.sleep(2)
         except WebSocketDisconnect:
+            return
+        except Exception:
+            # client vanished without a close frame (e.g. device slept) -> stop pushing
             return
 
     if WEB_DIR.exists():

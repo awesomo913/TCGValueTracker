@@ -55,3 +55,10 @@ def test_allowlist_add_requires_pin_then_lists(tmp_path):
     r = client.post("/api/allowlist/add", json={"name": "Alex", "pin": "1234"})
     assert r.status_code == 200
     assert client.get("/api/allowlist").json()["players"] == ["Alex"]
+
+
+def test_restore_rejects_path_traversal(tmp_path):
+    cfg, client = _client(tmp_path)
+    auth.set_pin("1234", cfg.pin_file)
+    r = client.post("/api/restore", json={"name": "../../etc", "pin": "1234"})
+    assert r.status_code == 404

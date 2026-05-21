@@ -21,7 +21,7 @@ All Python lives under `app/`. Each file has one job.
 | `config.py` | Loads all settings (paths, port number, PIN file location, how many backups to keep) from environment variables. Everything is immutable (frozen dataclass — an object whose fields can never change after creation). |
 | `logging_setup.py` | Configures Python's built-in logging system once at startup. Writes log lines to `~/block_boss/logs/`. |
 | `log_parser.py` | Reads lines coming out of the Bedrock server's stdout (standard output — the text stream a program prints to) and extracts useful events: who joined, who left, whether the world save finished. |
-| `auth.py` | Hashes (scrambles one-way) and verifies the parent PIN. The real digits are never stored — only a bcrypt fingerprint. |
+| `auth.py` | Hashes (scrambles one-way) and verifies the parent PIN. The real digits are never stored — only a PBKDF2 fingerprint (a one-way scramble made with Python's built-in hashlib). |
 | `allowlist.py` | Reads and writes `allowlist.json`, the file the Bedrock server uses to decide which player names may connect. Can also send a live "reloadallowlist" command to a running server so changes take effect instantly. |
 | `backups.py` | Makes a timestamped copy of the `worlds/` folder (the saved game data), prunes old backups down to the configured keep-count, and restores a backup by swapping the folders. |
 | `server_supervisor.py` | Launches and babysits the Bedrock server process (via Box64). Tracks the server's state (stopped / starting / running / stopping), collects the online player list from log lines, and lets callers send console commands to the server's stdin (standard input — the text stream you type commands into). |
@@ -75,7 +75,7 @@ Nintendo Switch's Minecraft only shows the official "Featured Servers" list. You
 
 ## Security design choices
 
-- Parent PIN stored as a bcrypt hash — the original digits are unrecoverable.
+- Parent PIN stored as a salted PBKDF2-SHA256 hash (200,000 rounds) — the original digits are unrecoverable.
 - The allowlist file is only writable through the API (PIN-gated).
 - Backup restore stops the server first so no world data is partially written.
 - Path traversal (an attack where a crafted filename like `../../etc/passwd` escapes its folder) is blocked by checking that the resolved backup path starts with the backups directory.

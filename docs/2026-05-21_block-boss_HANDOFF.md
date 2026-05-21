@@ -27,7 +27,7 @@ This project was built in a single development sprint using subagent-driven deve
 2. `config.py` — immutable settings dataclass
 3. `logging_setup.py` — single-call log configuration
 4. `log_parser.py` — parses Bedrock server stdout for join/leave/save events
-5. `auth.py` — bcrypt PIN hashing and verification
+5. `auth.py` — PBKDF2 PIN hashing and verification (Python's built-in hashlib, no external crypto library)
 6. `allowlist.py` — reads/writes `allowlist.json`, sends live reload command
 7. `backups.py` — timestamped world backups with pruning and restore
 8. `server_supervisor.py` — child process management, status tracking, player list
@@ -111,7 +111,7 @@ block_boss/
 
 Built with Claude Code (Anthropic) using the subagent-driven development workflow. Thirteen parallel and sequential agent tasks executed from a single plan document. No human wrote the Python source code directly — all modules were generated, reviewed by automated test runners, and iterated to pass 26 tests.
 
-External libraries used: FastAPI, uvicorn, bcrypt, anyio. All open-source, MIT or Apache licensed.
+External libraries used: FastAPI and uvicorn (and their own dependencies, such as Starlette and anyio). All open-source, MIT or Apache licensed. PIN hashing uses Python's built-in `hashlib` (PBKDF2) — no extra crypto library is installed.
 
 BedrockConnect is Pugmatt's open-source project: `https://github.com/Pugmatt/BedrockConnect`.
 Box64 is ptitSeb's open-source project: `https://github.com/ptitSeb/box64`.

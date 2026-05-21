@@ -136,3 +136,35 @@ The `broadcast.py` engine and `cdp_client.py` are inherited from Autocoder, unch
 - End-to-end feasibility spike PASSED: live Cursor driven over CDP, real model request sent (quota −1), real reply read back in ~9s.
 - All 18 automated unit tests passing.
 - Deferred: live-tuning of the mode-control selector against real DOM (requires a running Cursor); queue-loop integration test with real Cursor (burns real requests); short-reply filter calibration for Cursor reply lengths.
+
+### 2026-05-21 — Added App Mode (Viral Play-Store App preset)
+
+**New preset — `viral_app` in `coding_profiles.py`**
+
+Added a `viral_app` coding profile preset. Settings: target = Android App, perfection loop = on, expand = off, acceptance = strict. When selected from the GUI preset dropdown the engine tightens its quality bar and holds each iteration to a higher standard before moving on.
+
+**Four new improvement focuses in `broadcast.py`**
+
+Added `ad_monetization`, `play_store_readiness`, `design_polish`, and `virality_retention` to the pool of improvement focus strings that the broadcast loop cycles through. Together they encode the Play-ready / monetized / polished / viral rubric: ads that earn from the first install, manifest + icon + store metadata that pass Google's review, the same look-and-feel polish benchmarked against the user's shipped Typing Speed Test, and retention mechanics that bring users back.
+
+**Quality-bar checklist — `docs/app_mode/playstore_quality_bar.md`**
+
+Added a bundled Markdown checklist that enumerates the Play Store quality bar: working splash screen, required permissions declared, AdMob or equivalent integration, versioned `build.gradle`, README with store description. When the `viral_app` preset is active the checklist is auto-attached to the prompt context at startup (same mechanism as the OpenClaw reference-pack attach — keys off the saved preset on launch).
+
+**Honest ship gate — `app_mode_acceptance.py`**
+
+Added a ship-gate module that runs before the broadcast loop marks an iteration "accepted". Gate logic:
+
+1. If the Android SDK (`ANDROID_HOME` or `ANDROID_SDK_ROOT`) and either `gradlew` or a system `gradle` are found in the project directory, the gate runs `gradle :app:assembleDebug` (or `./gradlew :app:assembleDebug`) and passes only on exit code 0.
+2. If the SDK or Gradle are absent the gate falls back to a structure + manifest check (verifies `AndroidManifest.xml`, `build.gradle`, and `src/` exist) and logs a clear `DECISION compile_gate=skipped reason=no_android_sdk` line — it never silently passes a "compiled" status when compilation was not actually verified.
+3. Both paths log a `DECISION app_mode_gate=<passed|failed|skipped>` entry to the diagnostic log.
+
+**New `BroadcastConfig` field — `app_mode_project_dir`**
+
+Added `app_mode_project_dir: str = ""` to `BroadcastConfig`. The run-launch code must set this to the Cursor project folder path when the `viral_app` preset is active; the gradle / structure gate reads it to know where to look. An empty string disables the gate (safe default for non-app presets).
+
+**Known follow-up items**
+
+- `app_mode_project_dir` must be fed from the GUI at run-launch (the field exists in config; wiring to the UI picker is a deferred task).
+- The quality-bar checklist attach keys off the saved preset at startup — same as OpenClaw's reference-pack pattern; verified works in OpenClaw, pending smoke test for CursorCoder.
+- `app_mode_acceptance.py` gradle path tested with a stub; live test against a real Android project (with SDK) is deferred until a suitable test project is available.

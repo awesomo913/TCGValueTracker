@@ -109,3 +109,23 @@ time. It counts every request it sends and stops cleanly when your
 monthly allowance runs out. All basic safety controls are included:
 stop button, panic key, and crash recovery. A ready-to-run program
 file was created for Windows.
+
+### 2026-05-21 — Added App Mode
+
+Added an "App Mode" setting. When you turn it on, the program pushes
+the AI to build complete phone apps that are ready for the Google Play
+store — with ads built in so the app earns money even if someone
+downloads it just once, and the same careful look-and-feel polish as
+the user's own Typing Speed Test app that is already on the store.
+
+The program will not call an app finished until it actually builds and
+passes a quality checklist. If the right tools are on the computer, it
+runs a real build and checks that it passes. If not, it still checks
+that all the required files are in the right places and says clearly
+that it did not do a full build check — it never pretends the app
+compiled when it did not.
+
+The checklist covers things like: a working opening screen, the right
+permissions listed, ad code in place, and store info ready to copy
+into the Play Store page. You still submit the finished app to the
+store yourself.

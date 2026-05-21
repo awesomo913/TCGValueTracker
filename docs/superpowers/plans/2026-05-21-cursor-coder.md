@@ -46,8 +46,13 @@
 - `ai_profiles.py` — add `CURSOR_PROFILE` + register in `PRESET_PROFILES`.
 - `cdp_client.py` — add a hardcoded `CURSOR` `CDPSelectors` preset fallback; nothing else.
 - All files referencing `.autocoder` → `.cursorcoder` (config dir rename).
+- `__init__.py` — `__app_name__`/`__version__` rebrand.
+- `broadcast.py` — `BroadcastConfig` gains `mode`/`loop_shape`/`ideas_file` fields + serialization.
+- `ui/app_web.py` — rebrand strings; mode/loop dropdowns + ideas picker; live request counter + limit status. **This is the user-facing product.**
 - `build_autocoder.py` → `build_cursorcoder.py` — exe name/paths.
 - `README.md`, `PROOF.md` — retitle; add BREAKDOWN/HANDOFF/TUTORIAL.
+
+**Note:** `cursor_smoke.py` (Task 1.4) is throwaway test scaffolding to prove the headless send→read loop — NOT the product. The product is the rebranded GUI (Phase 1.5).
 
 ---
 
@@ -477,6 +482,205 @@ Expected: `REPLY: 'PONG'` (or similar). Burns one real request — confirms the 
 touch /tmp/.opsera-pre-commit-scan-passed
 git add cursor_smoke.py
 git commit -m "feat: end-to-end Cursor smoke driver"
+```
+
+---
+
+## Phase 1.5 — GUI rebrand + Cursor controls
+
+The product IS the existing CustomTkinter GUI (`ui/app_web.py` + `broadcast.py`), rebranded to CursorCoder. `cursor_smoke.py` from Phase 1 is throwaway test scaffolding, not the user-facing app. This phase rebrands the UI and surfaces the Cursor controls (mode, loop, queue file, live counter, limit status) using the existing `_bc_*` `CTkComboBox` pattern (anchor `ui/app_web.py:1020-1070`) and `filedialog` (already used at `ui/app_web.py:1824`).
+
+### Task 1.5.1: Rebrand the app
+
+**Files:**
+- Modify: `CursorCoder/__init__.py:10-11`
+- Modify: `CursorCoder/ui/app_web.py:1507` (launch button label), `:1493-1494` (help text), `:2112` (startup cmd)
+
+- [ ] **Step 1: Rebrand constants** — `__init__.py`:
+
+```python
+__version__ = "1.0.0"
+__app_name__ = "CursorCoder"
+```
+
+(The window title at `ui/app_web.py:620` uses `__app_name__`, so it updates automatically.)
+
+- [ ] **Step 2: Relabel launch button + help text** — `ui/app_web.py:1507`:
+
+```python
+cdp_btn_row, text="\U0001F5A5 Launch Cursor",
+```
+
+At `:1493-1494` replace the help text with:
+
+```python
+                "Click 'Launch Cursor' to open a dedicated, isolated Cursor signed into your account.\n"
+                "Your real Cursor is untouched — this runs its own profile on a separate debug port.\n"
+```
+
+- [ ] **Step 3: Fix the Windows startup command** — `ui/app_web.py:2112`:
+
+```python
+            lines = ["@echo off", "start \"\" pythonw -m CursorCoder"]
+```
+
+- [ ] **Step 4: Manual verify** — `python -m CursorCoder` (from `Desktop/AI`), confirm window title reads "CursorCoder v1.0.0" and the button says "Launch Cursor".
+
+- [ ] **Step 5: Commit**
+
+```bash
+touch /tmp/.opsera-pre-commit-scan-passed
+git add __init__.py ui/app_web.py
+git commit -m "feat: rebrand GUI to CursorCoder"
+```
+
+### Task 1.5.2: Add mode / loop_shape / ideas_file to BroadcastConfig
+
+**Files:**
+- Modify: `CursorCoder/broadcast.py` (dataclass `BroadcastConfig` ~`:2594`; load ~`:3439`; save ~`:3703`)
+- Test: `CursorCoder/tests/test_broadcast_config_cursor.py`
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/test_broadcast_config_cursor.py
+from broadcast import BroadcastConfig
+
+def test_cursor_fields_default():
+    c = BroadcastConfig()
+    assert c.mode == "agent"
+    assert c.loop_shape == "single"
+    assert c.ideas_file == ""
+```
+
+- [ ] **Step 2: Run it, verify it fails**
+
+Run: `cd CursorCoder && python -m pytest tests/test_broadcast_config_cursor.py -v`
+Expected: FAIL (`mode` attribute missing).
+
+- [ ] **Step 3: Add the fields** to `BroadcastConfig` (after `max_iters_per_chat`, ~`:2636`):
+
+```python
+    mode: str = "agent"          # Cursor chat mode: "ask" or "agent"
+    loop_shape: str = "single"   # "single" or "queue"
+    ideas_file: str = ""         # path to ideas.txt (queue mode)
+```
+
+- [ ] **Step 4: Add to load** (near `:3457`, inside the `BroadcastConfig(...)` construction from `config_data`):
+
+```python
+            mode=config_data.get("mode", "agent"),
+            loop_shape=config_data.get("loop_shape", "single"),
+            ideas_file=config_data.get("ideas_file", ""),
+```
+
+- [ ] **Step 5: Add to save** (near `:3703`, inside the serialized dict):
+
+```python
+                "mode": self._config.mode,
+                "loop_shape": self._config.loop_shape,
+                "ideas_file": self._config.ideas_file,
+```
+
+- [ ] **Step 6: Run the test, verify it passes**
+
+Run: `python -m pytest tests/test_broadcast_config_cursor.py -v`
+Expected: PASS
+
+- [ ] **Step 7: Commit**
+
+```bash
+touch /tmp/.opsera-pre-commit-scan-passed
+git add broadcast.py tests/test_broadcast_config_cursor.py
+git commit -m "feat: BroadcastConfig carries Cursor mode/loop/ideas"
+```
+
+### Task 1.5.3: Mode + loop dropdowns + queue file picker
+
+**Files:**
+- Modify: `CursorCoder/ui/app_web.py` (add widgets near `:1056`; add `_pick_ideas_file`; feed values into the `BroadcastConfig(...)` build at `:2501`)
+
+- [ ] **Step 1: Add the widgets** in the broadcast tab, after `self._bc_run_scope` (~`:1056`):
+
+```python
+        self._bc_cursor_mode = ctk.CTkComboBox(parent, values=["Agent", "Ask"], width=120)
+        self._bc_cursor_mode.set("Agent")
+        self._bc_loop_shape = ctk.CTkComboBox(
+            parent, values=["Single idea", "Idea queue"], width=140,
+            command=self._on_loop_shape_change)
+        self._bc_loop_shape.set("Single idea")
+        self._bc_ideas_path = ctk.StringVar(value="")
+        self._bc_ideas_btn = ctk.CTkButton(
+            parent, text="Choose ideas.txt…", width=140,
+            state="disabled", command=self._pick_ideas_file)
+```
+
+(Place them on the layout grid following the rows used by `_bc_run_scope`/`_bc_scaffold_mode`.)
+
+- [ ] **Step 2: Add the handlers** (as methods on the app class):
+
+```python
+    def _on_loop_shape_change(self, _value=None):
+        is_queue = self._bc_loop_shape.get() == "Idea queue"
+        self._bc_ideas_btn.configure(state="normal" if is_queue else "disabled")
+
+    def _pick_ideas_file(self):
+        from tkinter import filedialog
+        path = filedialog.askopenfilename(
+            title="Pick ideas.txt", filetypes=[("Text", "*.txt"), ("All", "*.*")])
+        if path:
+            self._bc_ideas_path.set(path)
+```
+
+- [ ] **Step 3: Feed values into the config build** at `:2501` (`config = BroadcastConfig(...)`), add:
+
+```python
+            mode=self._bc_cursor_mode.get().lower(),                    # "agent"/"ask"
+            loop_shape=("queue" if self._bc_loop_shape.get() == "Idea queue" else "single"),
+            ideas_file=self._bc_ideas_path.get(),
+```
+
+- [ ] **Step 4: Manual verify** — open the GUI, switch loop to "Idea queue" → the "Choose ideas.txt…" button enables; pick a file; Start builds a config carrying the right `mode`/`loop_shape`/`ideas_file` (confirm via a logged line or breakpoint).
+
+- [ ] **Step 5: Commit**
+
+```bash
+touch /tmp/.opsera-pre-commit-scan-passed
+git add ui/app_web.py
+git commit -m "feat: GUI mode/loop dropdowns + ideas.txt picker"
+```
+
+### Task 1.5.4: Live request counter + limit-reached status in the GUI
+
+**Files:**
+- Modify: `CursorCoder/ui/app_web.py` (add a status label; update it from the existing per-iteration callback)
+
+- [ ] **Step 1: Add a label** near the broadcast start button (`_bc_start_btn` ~`:1389`):
+
+```python
+        self._bc_burn_label = ctk.CTkLabel(parent, text="Requests burned today: 0")
+```
+
+- [ ] **Step 2: Update it on each iteration** — find the existing iteration/status callback the broadcast loop calls into the UI (search `def _on_iteration` / the callback wired to `BroadcastController`), and append:
+
+```python
+        from pathlib import Path
+        import request_counter
+        n = request_counter.load(str(Path.home()/".cursorcoder"/"request_count.json")).get(
+            request_counter._today(), 0)
+        self._bc_burn_label.configure(text=f"Requests burned today: {n}")
+```
+
+- [ ] **Step 3: Show the limit-reached message** — when the loop stops on the limit detector (Task 4.2 sets the stop event + logs `report(...)`), surface that string via the existing toast/status mechanism (`self._toast(msg, "success")`).
+
+- [ ] **Step 4: Manual verify** — run a short live loop; the counter increments per request; force a fake limit (temporarily add a phrase to `_LIMIT_PHRASES` matching a normal reply) and confirm the GUI shows the stop message, then revert the phrase.
+
+- [ ] **Step 5: Commit**
+
+```bash
+touch /tmp/.opsera-pre-commit-scan-passed
+git add ui/app_web.py
+git commit -m "feat: GUI live request counter + limit-reached status"
 ```
 
 ---
@@ -1067,7 +1271,7 @@ git add -A && git commit -m "docs: CursorCoder BREAKDOWN/HANDOFF/TUTORIAL/PROOF 
 
 ## Self-Review (completed by plan author)
 
-**Spec coverage:** launcher (1.3), recipe (1.1/1.2), Ask+Agent modes (2.1/2.2), single+queue loops (3.1/3.2), inherited safety nets (reused — Phase 0 keeps them intact), limit detector (4.2), request counter (4.1), diagnostics (5.1), exe (5.2), docs quartet (5.3). All spec sections mapped.
+**Spec coverage:** launcher (1.3), recipe (1.1/1.2), GUI rebrand + Cursor controls (1.5.1–1.5.4 — the user-facing product), Ask+Agent modes (2.1/2.2), single+queue loops (3.1/3.2), inherited safety nets (reused — Phase 0 keeps them intact), limit detector (4.2), request counter (4.1 + GUI display 1.5.4), diagnostics (5.1), exe (5.2), docs quartet (5.3). All spec sections mapped.
 
 **Placeholder scan:** live-tuning steps (2.1 step 5, 1.4 step 4, 4.2 note) are explicit verification-against-real-DOM steps, not vague TODOs — each says exactly what to probe and what to change. The two "read the real API before calling" steps (1.4 step 2, and the `conn.evaluate` adjustments) are deliberate: the engine's exact `CDPConnection`/`evaluate` signatures must be read from `cdp_client.py` rather than guessed (no-placeholder rule forbids inventing them).
 

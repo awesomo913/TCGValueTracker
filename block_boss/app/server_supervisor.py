@@ -53,6 +53,9 @@ class ServerSupervisor:
         threading.Thread(target=self._read_loop, daemon=True).start()
 
     def _read_loop(self) -> None:
+        # _status/_save_ready are written here from the daemon reader thread and
+        # read lock-free from the main thread. Safe under CPython: enum/bool
+        # assignment is atomic, and _save_ready is a one-way False->True flip.
         proc = self._proc
         if not proc or not proc.stdout:
             return

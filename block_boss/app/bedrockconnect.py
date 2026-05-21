@@ -28,6 +28,10 @@ class BedrockConnectSupervisor:
     def stop(self) -> None:
         if self._proc and self._proc.poll() is None:
             self._proc.terminate()
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
 
     @property
     def running(self) -> bool:

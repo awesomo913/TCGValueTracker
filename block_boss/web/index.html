@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Block Boss</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <h1>Block Boss</h1>
+
+  <section class="card">
+    <div id="light" class="light grey"></div>
+    <div id="statusText">Checking...</div>
+    <div class="big-buttons">
+      <button id="startBtn" class="btn green">Start</button>
+      <button id="stopBtn" class="btn red">Stop</button>
+      <button id="restartBtn" class="btn amber">Restart</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Players online</h2>
+    <ul id="players"><li class="muted">nobody yet</li></ul>
+  </section>
+
+  <section class="card">
+    <h2>Backup</h2>
+    <button id="backupBtn" class="btn blue">Save a backup now</button>
+    <div id="backupMsg" class="muted"></div>
+  </section>
+
+  <section class="card">
+    <h2>Approved players</h2>
+    <ul id="allowlist"></ul>
+    <input id="newPlayer" placeholder="gamertag" />
+    <button id="addPlayerBtn" class="btn blue">Add</button>
+  </section>
+
+  <section class="card">
+    <h2>Switch setup</h2>
+    <div id="switchLight" class="light grey small"></div>
+    <p>On the Switch: Internet Settings -> your WiFi -> Change Settings ->
+       DNS Settings -> Manual -> Primary DNS:</p>
+    <p class="dns" id="dnsIp">...</p>
+    <p class="muted">Then open any Featured Server and pick this one from the menu.</p>
+  </section>
+
+  <dialog id="pinDialog">
+    <form method="dialog">
+      <p>Enter parent PIN</p>
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="4" />
+      <menu>
+        <button value="cancel">Cancel</button>
+        <button id="pinOk" value="ok">OK</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

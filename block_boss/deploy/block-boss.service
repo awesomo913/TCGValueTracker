@@ -1,0 +1,16 @@
+[Unit]
+Description=Block Boss — Minecraft Bedrock server manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/AI/block_boss
+Environment=BLOCK_BOSS_HOME=/home/%i/block_boss
+ExecStart=/home/%i/AI/block_boss/.venv/bin/uvicorn app.run:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

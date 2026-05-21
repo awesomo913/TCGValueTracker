@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-05-21-cursor-coder-design.md` (feasibility spike PASSED end-to-end).
 
+> **EXECUTION NOTE (import convention):** `broadcast.py`/`ai_profiles.py` import the SHARED sibling package `gemini_coder` (lives at `Desktop/AI/gemini_coder`). So CursorCoder runs as `python -m CursorCoder` **from `Desktop/AI`**, and smoke-imports must run from there too — e.g. `cd /c/Users/computer/Desktop/AI && python -c "import CursorCoder.cdp_client, CursorCoder.broadcast"`. Running `python -c "import cdp_client"` from *inside* `CursorCoder/` fails (no sibling on path) — that is expected, not a bug. **Do NOT modify `gemini_coder/`** — it is shared by Autocoder/opencoder/etc. `get_config_dir()` there returns `%APPDATA%/gemini_coder` (shared); only the hardcoded `~/.cursorcoder` paths are private to this fork (that's what Task 0.2 renames). Pytest runs from inside `CursorCoder/` with `PYTHONPATH` including the parent: `cd CursorCoder && PYTHONPATH=.. python -m pytest ...`.
+
 **Verified Cursor recipe (from spike):**
 | Role | Selector / signal |
 |---|---|

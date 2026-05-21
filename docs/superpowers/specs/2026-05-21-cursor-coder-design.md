@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-21
 **Author of record (designer):** the user. AI implements to spec.
-**Status:** approved design, pre-implementation.
+**Status:** approved design, **feasibility spike PASSED end-to-end 2026-05-21**, pre-implementation.
 
 ## Goal
 
@@ -25,6 +25,41 @@ before the 23rd as a deliberate side effect.
   of CSS selectors in `default_selectors.json`; the send→wait→extract loop and
   all safety nets live above that layer and are target-agnostic.
 
+## Feasibility spike — PASSED end-to-end (2026-05-21)
+
+Ran against the live installed Cursor. Every assumption proven:
+
+- Cursor honors `--remote-debugging-port=9223` on an **isolated `--user-data-dir`**
+  (separate from the user's real Cursor — zero disruption). Quota is per-account,
+  so signing the isolated profile into the same Pro account draws from the same
+  monthly request pool.
+- Chromium 142 requires `--remote-allow-origins=http://127.0.0.1:9223` or the CDP
+  WebSocket handshake returns **403 Forbidden**. This flag is mandatory in the
+  launcher.
+- Chat is **inline in the single workbench page target** — no out-of-process
+  webview to chase. `Target.getTargets` returns one `page`.
+- Cursor uses **stable, readable `ui-*` / `composer-*` class names** (not hashed),
+  so the recipe is robust across restarts.
+- Full send→generate→read loop confirmed: typed via `Input.insertText`, clicked
+  submit, Cursor issued a real model request (quota −1), then the reply was read
+  back. Agent obeyed a "do not touch files" instruction.
+
+### Verified Cursor recipe (DOM-derived)
+
+| Role | Selector / signal |
+|---|---|
+| Chat input | `.ui-prompt-input-editor__input` (contenteditable ProseMirror) |
+| Type method | focus + CDP `Input.insertText` (ProseMirror ignores direct DOM set) |
+| Submit button | `.ui-prompt-input-submit-button` |
+| Ready signal | submit button `aria-label="Send message"` (empty input shows `"Start voice input"`) |
+| Streaming marker | `.ui-ascii-loading-indicator` present **OR** submit `aria-label="Stop generation"` |
+| Stop button | `.ui-prompt-input-submit-button[aria-label="Stop generation"]` |
+| Done signal | loading indicator gone **and** submit no longer `"Stop generation"` |
+| Assistant reply | last `.composer-rendered-message` not wrapped in `.composer-human-message-container`; text in `.markdown-root` |
+| Model picker | `.ui-model-picker__trigger` (lets us force a heavier model to burn more quota) |
+
+Spike scripts retained at `~/.cursorcoder/spike_*.py` for reference.
+
 ## Chosen approach
 
 **Approach A** — attach to Cursor over its remote-debugging port and reuse ~90%
@@ -46,15 +81,20 @@ net. Swap only the **target layer**.
 ### New components (the only genuinely new code)
 
 1. **`cursor_launcher.py`**
-   - Closes any running Cursor instance.
-   - Relaunches `Cursor.exe --remote-debugging-port=9223` opened on a target
-     project folder.
-   - Waits for the CDP endpoint (`http://127.0.0.1:9223/json`) to come up.
-   - Attaches via the existing CDP client, locating the chat-panel target.
-   - **Uses the user's real Cursor profile** (their logged-in Pro account) — not
-     a throwaway profile — because the goal is to burn *their* quota. This means
-     the program disrupts the user's live editor: it must close and reopen
-     Cursor. Surfaced and accepted by the user.
+   - Launches a **dedicated, isolated Cursor instance** on its own
+     `--user-data-dir` (default `~/.cursorcoder/cursor-profile`) — the user's
+     real Cursor is never touched. Decision revised after the user pushed back:
+     quota is per-account, so an isolated profile signed into the same Pro
+     account burns the same quota with zero editor disruption.
+   - Full launch args: `Cursor.exe --user-data-dir=<profile>
+     --remote-debugging-port=9223 --remote-allow-origins=http://127.0.0.1:9223
+     <project-folder>`. The allow-origins flag is **mandatory** (Chromium 142
+     blocks CDP otherwise).
+   - Waits for `http://127.0.0.1:9223/json/version` to come up, then attaches.
+   - Kills only its own instance (matched by the profile path in the command
+     line) on shutdown/restart — never the user's real Cursor.
+   - **One-time manual step:** the isolated profile must be signed into the
+     user's Cursor account once (the program cannot enter credentials).
 
 2. **`cursor_discovery.py`**
    - One-time helper that dumps the chat-panel DOM (Cursor scrambles its CSS

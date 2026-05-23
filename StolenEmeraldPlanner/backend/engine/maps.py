@@ -35,7 +35,10 @@ def get_map(repo: Path, folder_name: str):
     mj = _maps_root(repo) / folder_name / "map.json"
     if not mj.is_file():
         return None
-    d = json.loads(mj.read_text(encoding="utf-8"))
+    try:
+        d = json.loads(mj.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None  # corrupt/unreadable map.json -> treat as missing (caller 404s)
     return {
         "id": d.get("id", ""),
         "name": d.get("name", folder_name),

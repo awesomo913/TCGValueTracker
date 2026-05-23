@@ -1,0 +1,54 @@
+# StolenEmerald Planner — PROOF (plain-language record)
+
+This file is written so anyone — a customer, an investor, a lawyer, a judge, a
+juror, or someone with no coding background — can understand what was built,
+when, and why. No jargon.
+
+## What it is, in one breath
+
+It's a program that opens a nice-looking window on your computer and shows you,
+at a glance, everything about a big fan-made Pokémon game project: which wild
+Pokémon live on which maps, what their levels are, how rare they are, and what
+each one looks like (using the game's real artwork). You click around like a
+website, but it runs entirely on your own machine.
+
+## Why it was built
+
+The project's information was scattered across hundreds of files in many
+different formats — encounter tables, map files, artwork folders, planning
+notes. There was no single place to *see* it. This tool gathers it and makes it
+visual, so the person building the game can plan the artistic and story side
+while seeing the technical reality at the same time.
+
+## The single most important promise
+
+**The tool only reads the project. It never changes it.** It cannot edit, move,
+or delete anything in the `C:\StolenEmerald` folder. It makes its own private
+copy of what it needs (a small cache) somewhere else. So there is zero risk of
+it damaging the actual game project.
+
+## What it does today
+
+- Shows **240 maps** that contain wild Pokémon.
+- For each map, shows every wild Pokémon with its **real sprite (artwork)**, the
+  **levels** it appears at, and **how rare** it is.
+- Lets you click any Pokémon to see a **big picture** of it and **every map** it
+  can be found on.
+- Has a **Rescan** button so if you change the game project, the tool can re-read
+  it and show the latest.
+
+## Proof it actually works
+
+On 2026-05-23, the tool was run and checked in a real web browser. Screenshots
+captured: (1) the map list showing all 240 maps, (2) a map's encounter screen
+showing real Pokémon sprites with levels and rarity bars, (3) a Pokémon detail
+screen showing its picture and the five maps it appears on. Fifteen automated
+tests pass against the real project data.
+
+## Changelog
+
+- **2026-05-23 — Phase 1 built.** Created the read-only viewer with the World
+  Atlas: every wild Pokémon on every map, shown with real sprites, level ranges,
+  and rarity. Verified working in a browser and packaged into a double-click
+  Windows app. Three more sections (Cast & Scripts, Command Center, Story
+  Timeline) are planned next.

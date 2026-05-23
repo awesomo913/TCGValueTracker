@@ -1,0 +1,15 @@
+{
+  "name": "StolenEmeraldPlanner",
+  "entry": "app.py",
+  "kind": "gui",
+  "build_mode": "onedir",
+  "hidden_imports": [
+    "uvicorn.logging",
+    "uvicorn.loops.auto",
+    "uvicorn.protocols.http.auto",
+    "uvicorn.protocols.websockets.auto",
+    "uvicorn.lifespan.on"
+  ],
+  "data_dirs": ["frontend"],
+  "icon": ""
+}

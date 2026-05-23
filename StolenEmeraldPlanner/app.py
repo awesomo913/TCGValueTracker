@@ -6,6 +6,7 @@ import uvicorn
 import webview
 
 from backend import diagnostics
+from backend.server import app as fastapi_app
 
 
 def _free_port() -> int:
@@ -17,7 +18,9 @@ def _free_port() -> int:
 
 
 def _serve(port: int):
-    uvicorn.run("backend.server:app", host="127.0.0.1", port=port, log_level="warning")
+    # Pass the app OBJECT, not an import string: uvicorn's string form re-imports
+    # by module name, which fails inside a frozen PyInstaller bundle.
+    uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="warning")
 
 
 def main():
@@ -30,6 +33,9 @@ def main():
                 break
         except OSError:
             time.sleep(0.1)
+    else:  # loop exhausted without connecting — server failed to start
+        diagnostics.log("CRASH", f"backend server never came up on port {port}")
+        raise RuntimeError(f"backend server failed to start on port {port}")
     diagnostics.log("STATE", f"init->ready port={port}")
     webview.create_window(
         "StolenEmerald Planner",

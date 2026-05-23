@@ -1,0 +1,17 @@
+# Build artifacts
+.venv/
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local app data / cache
+*.db
+.stolenemerald_planner/
+.playwright-mcp/
+
+# Screenshots / render proofs from verification
+atlas-*.png
+*_render.png

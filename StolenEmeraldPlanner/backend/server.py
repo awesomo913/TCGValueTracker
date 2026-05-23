@@ -1,4 +1,5 @@
 import io
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -11,6 +12,7 @@ from backend.engine import atlas, maps, species
 
 app = FastAPI(title="StolenEmerald Planner")
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+_atlas_lock = threading.Lock()  # serialize cache check+rebuild to avoid a TOCTOU race
 
 
 @app.get("/api/health")
@@ -23,12 +25,19 @@ def get_atlas():
     if not config.repo_exists():
         raise HTTPException(status_code=503, detail="StolenEmerald repo not found")
     sig = cache.repo_signature()
-    if cache.is_stale("atlas", sig):
-        diagnostics.log("DECISION", "atlas cache miss -> rebuild")
-        payload = atlas.build(config.repo_path())
-        cache.set_payload("atlas", payload, sig)
-    else:
-        payload = cache.get_payload("atlas")
+    with _atlas_lock:  # one request rebuilds; others wait and read the fresh value
+        if cache.is_stale("atlas", sig):
+            diagnostics.log("DECISION", "atlas cache miss -> rebuild")
+            payload = atlas.build(config.repo_path())
+            cache.set_payload("atlas", payload, sig)
+        else:
+            payload = cache.get_payload("atlas")
+    if payload is None:
+        # cache row missing/corrupt after a hit — self-heal rather than return null
+        diagnostics.log("CRASH", "atlas cache returned None; forcing rebuild")
+        with _atlas_lock:
+            payload = atlas.build(config.repo_path())
+            cache.set_payload("atlas", payload, sig)
     return payload
 
 

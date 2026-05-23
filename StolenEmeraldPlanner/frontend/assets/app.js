@@ -46,7 +46,10 @@ document.getElementById('rescan').addEventListener('click', async () => {
   setStatus('Rescanning…');
   state.atlas = null;
   try {
-    await api.rescan();
+    if (!(await api.rescan())) {
+      setStatus('Rescan failed (server error)');
+      return;
+    }
     await ensureAtlas();
     activate('atlas');
   } catch (e) {

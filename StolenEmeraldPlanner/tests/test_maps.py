@@ -17,3 +17,10 @@ def test_get_map_has_objects_and_warps(repo):
 
 def test_get_map_missing_returns_none(repo):
     assert maps.get_map(repo, "NotAMapFolder") is None
+
+
+def test_get_map_corrupt_json_returns_none(tmp_path):
+    bad = tmp_path / "data" / "maps" / "BadMap"
+    bad.mkdir(parents=True)
+    (bad / "map.json").write_text("{ this is not valid json", encoding="utf-8")
+    assert maps.get_map(tmp_path, "BadMap") is None

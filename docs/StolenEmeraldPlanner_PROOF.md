@@ -61,3 +61,13 @@ tests pass against the real project data.
   Verified in a browser on Route 101 (the rendered map, the green encounter zones,
   and the "Birch rescue" story trigger all displayed correctly) and rebuilt into
   the Windows app.
+- **2026-05-23 — Phases 3-5 built: the last three rooms.** Added: **Cast &
+  Scripts** (pick a map, see every person/trainer/item/sign and click to read the
+  exact game script behind it, plus a trainer's team); **Command Center** (read
+  and search all the project's notes and history documents in one place); and
+  **Story Timeline** (a list of the 65 real story-progress switches, where each
+  one advances the game and on which map, shown next to the written story plan).
+  Also made wild-Pokémon spawn info much easier to see on the Map View (a clear
+  card list plus the Pokémon's pictures placed right on the grass/water). All
+  verified in a browser and rebuilt into the Windows app. The tool now has all
+  four planned sections plus the visual Map View — five views total.

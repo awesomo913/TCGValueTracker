@@ -4,6 +4,12 @@
   --shadow:0 8px 30px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box} html,body{margin:0;height:100%}
+/* visible, comfortable scrollbars everywhere (pywebview hides them by default) */
+*{scrollbar-width:thin;scrollbar-color:#2fbf8f #0c2420}
+::-webkit-scrollbar{width:14px;height:14px}
+::-webkit-scrollbar-track{background:#0c2420}
+::-webkit-scrollbar-thumb{background:#2c5e54;border:3px solid #0c2420;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:var(--emerald)}
 body{display:flex;font:15px/1.5 "Segoe UI",system-ui,sans-serif;
   background:radial-gradient(1200px 800px at 80% -10%,#173f38,var(--bg));color:var(--text)}
 #sidebar{width:260px;flex:0 0 260px;background:linear-gradient(180deg,var(--panel),#0c2420);
@@ -45,8 +51,9 @@ input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);
 .back-btn{background:var(--panel2);border:1px solid #2c5e54;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
 
 /* ---- Map View ---- */
-.mapview{display:flex;gap:18px;height:calc(100vh - 120px)}
-.map-stage-wrap{flex:1;overflow:auto;background:#06140f;border:1px solid #1d4a43;border-radius:14px;
+.mapview{display:flex;gap:18px;align-items:flex-start}
+.map-stage-wrap{flex:1;min-width:0;max-height:calc(100vh - 170px);overflow:auto;background:#06140f;
+  border:1px solid #1d4a43;border-radius:14px;
   position:relative;display:flex;align-items:flex-start;justify-content:flex-start}
 .map-stage{position:relative;transform-origin:top left}
 .map-stage img,.map-stage canvas{position:absolute;top:0;left:0;image-rendering:pixelated}
@@ -60,7 +67,7 @@ input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);
 .m-sign{background:#9fb0aa}
 .m-warp{background:#b07cff}
 .m-trigger{background:#4fe0ad;border-radius:3px}
-.map-side{width:300px;flex:0 0 300px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.map-side{width:300px;flex:0 0 300px;display:flex;flex-direction:column;gap:10px}
 .layer-toggle{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid #1d4a43;
   border-radius:10px;padding:8px 11px;cursor:pointer;user-select:none;font-size:13px}
 .layer-toggle.off{opacity:.4}
@@ -96,9 +103,11 @@ input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);
 .enc-card .rb i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--emerald-bright))}
 
 /* ---- shared two-column rooms (Cast/Command/Timeline) ---- */
-.cols{display:flex;gap:16px;height:calc(100vh - 120px)}
-.col-list{width:330px;flex:0 0 330px;overflow:auto;display:flex;flex-direction:column;gap:6px}
-.col-main{flex:1;overflow:auto}
+.cols{display:flex;gap:16px;align-items:flex-start}
+.col-list{width:330px;flex:0 0 330px;display:flex;flex-direction:column;gap:6px}
+.col-main{flex:1;min-width:0}
+/* keep long code/doc panels from making the page absurdly tall; they scroll inside */
+.codeview,.docview{max-height:calc(100vh - 170px)}
 .row-item{background:var(--panel);border:1px solid #1d4a43;border-radius:10px;padding:9px 11px;cursor:pointer;transition:.12s}
 .row-item:hover{border-color:var(--emerald-bright);background:var(--panel2)}
 .row-item.sel{border-color:var(--gold)}

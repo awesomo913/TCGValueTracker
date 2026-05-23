@@ -6,9 +6,16 @@ that bridges the dev/code side into the artistic/story/planning side. Read-only
 over `C:\StolenEmerald`. Four rooms total; built in phases.
 
 - **Phase 1 (DONE):** Foundation (data engine + cache + web shell) + World Atlas.
-- **Phase 2 (next):** Cast & Scripts — NPCs/trainers/scripts per map.
-- **Phase 3:** Command Center — AI history, decisions, project status.
-- **Phase 4:** Story Timeline — flag/warp graph + narrative docs (research spike).
+- **Phase 2 (DONE):** Map View — accurate rendered map + overlays (encounter
+  zones, NPCs, trainers, item balls, hidden items, signs, warps, triggers).
+- **Phase 3 (DONE):** Cast & Scripts — per-map people/trainers/items/signs +
+  script viewer + trainer party.
+- **Phase 4 (DONE):** Command Center — searchable AI history/doc archive.
+- **Phase 5 (DONE):** Story Timeline — var-gated progression flags across all
+  maps + GOALS_TIMELINE narrative.
+
+All five views shipped. Future ideas: WebGL tile-walking world; per-tile
+encounter overlap; live emulator hookup; link Cast trainers to Map View markers.
 
 ## History
 - 2026-05-23: Brainstormed → spec (`docs/superpowers/specs/2026-05-23-stolenemerald-planner-design.md`)

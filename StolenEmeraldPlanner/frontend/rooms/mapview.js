@@ -240,6 +240,7 @@ window.renderMapView = async function (view, api, setStatus) {
   }
 
   async function loadMap(folder) {
+    window.setScene(folder); // immersive faded backdrop of the same map
     setStatus('Loading ' + folder + '…');
     try {
       st.detail = await api.mapDetail(folder);

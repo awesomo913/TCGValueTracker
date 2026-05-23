@@ -76,7 +76,7 @@ async function ensureAtlas() {
 }
 
 const rooms = {
-  atlas: () => window.renderAtlas(view, ensureAtlas, setStatus),
+  atlas: () => window.renderAtlas(view, ensureAtlas, setStatus, api),
   mapview: () => window.renderMapView(view, api, setStatus),
   cast: () => window.renderCast(view, api, setStatus),
   command: () => window.renderCommand(view, api, setStatus),
@@ -88,6 +88,7 @@ let currentRoom = 'atlas';
 
 function activate(room) {
   currentRoom = room;
+  window.clearScene && window.clearScene(); // reset bg; the room re-sets it if relevant
   document.querySelectorAll('.nav-item').forEach((b) =>
     b.classList.toggle('active', b.dataset.room === room)
   );
@@ -98,6 +99,30 @@ function activate(room) {
   void view.offsetWidth; // force reflow so the animation restarts
   view.classList.add('anim');
 }
+
+// faded route background — preload then crossfade so there's no broken-image flash
+const _sceneEl = document.getElementById('scene');
+let _sceneFolder = null;
+window.setScene = (folder) => {
+  if (!folder) return window.clearScene();
+  if (folder === _sceneFolder) return; // already showing this map
+  _sceneFolder = folder;
+  const url = '/api/map_render/' + encodeURIComponent(folder) + '.png';
+  const img = new Image();
+  img.onload = () => {
+    if (_sceneFolder !== folder) return; // a newer scene was requested meanwhile
+    _sceneEl.style.backgroundImage = `url("${url}")`;
+    _sceneEl.classList.add('on');
+  };
+  img.onerror = () => {
+    if (_sceneFolder === folder) window.clearScene();
+  };
+  img.src = url;
+};
+window.clearScene = () => {
+  _sceneFolder = null;
+  if (_sceneEl) _sceneEl.classList.remove('on');
+};
 
 // cross-room deep link: open a map's script in Cast & Scripts from anywhere
 window.openInCast = (folder, label) => {

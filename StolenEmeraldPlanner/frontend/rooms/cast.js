@@ -59,6 +59,7 @@ window.renderCast = async function (view, api, setStatus) {
 
   function showMap(folder, openLabel) {
     st.folder = folder;
+    window.setScene(folder); // faded map behind the cast/script lists
     mount(listCol, el('div', { cls: 's', text: 'Loading…' }));
     api
       .mapDetail(folder)

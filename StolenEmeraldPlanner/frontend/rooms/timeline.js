@@ -1,5 +1,10 @@
 window.renderTimeline = async function (view, api, setStatus) {
-  const st = { data: null };
+  const st = { data: null, idToFolder: {} };
+  try {
+    (await api.maps()).maps.forEach((m) => (st.idToFolder[m.id] = m.name));
+  } catch (e) {
+    st.idToFolder = {};
+  }
   const pretty = (n) => n.replace(/^MAP_/, '').replace(/_/g, ' ').replace(/([A-Za-z])(\d)/g, '$1 $2').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   const varName = (v) => v.replace(/^VAR_/, '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -13,6 +18,7 @@ window.renderTimeline = async function (view, api, setStatus) {
     const points = st.data.vars[v] || [];
     // order by the value the var must reach (story order)
     points.sort((a, b) => String(a.var_value).localeCompare(String(b.var_value), undefined, { numeric: true }));
+    if (points[0] && st.idToFolder[points[0].map]) window.setScene(st.idToFolder[points[0].map]);
     const rows = points.map((p) =>
       el(
         'div',

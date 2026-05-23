@@ -1,4 +1,4 @@
-window.renderAtlas = async function (view, ensureAtlas, setStatus) {
+window.renderAtlas = async function (view, ensureAtlas, setStatus, api) {
   mount(view, el('div', { cls: 'empty', text: 'Loading atlas…' }));
   let data;
   try {
@@ -6,6 +6,14 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
   } catch (e) {
     mount(view, el('div', { cls: 'empty' }, 'Could not read the repo. ', e.message));
     return;
+  }
+
+  // MAP_ROUTE101 -> folder "Route101" for the faded route background
+  let idToFolder = {};
+  try {
+    (await api.maps()).maps.forEach((m) => (idToFolder[m.id] = m.name));
+  } catch (e) {
+    idToFolder = {};
   }
 
   const pretty = (n) =>
@@ -56,6 +64,7 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
   }
 
   function showMap(name) {
+    window.setScene(idToFolder[name]); // fade this route's map in behind the encounters
     const m = data.maps[name];
     const head = el(
       'div',
@@ -111,6 +120,7 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
   }
 
   function listMaps(filter) {
+    window.clearScene(); // back to the full list — no single-route background
     filter = typeof filter === 'string' ? filter : '';
     const shown = mapNames.filter((n) => pretty(n).toLowerCase().includes(filter.toLowerCase()));
     const search = el('input', {

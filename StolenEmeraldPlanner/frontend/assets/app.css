@@ -1,7 +1,7 @@
 :root{
-  --bg:#0b1f1c; --panel:#102b27; --panel2:#16403a; --emerald:#2fbf8f;
-  --emerald-bright:#4fe0ad; --gold:#e8c66b; --text:#e7f4ef; --muted:#8fb3a9;
-  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --bg:#0a1c19; --panel:#123029; --panel2:#1a4a42; --emerald:#2fbf8f;
+  --emerald-bright:#5fe9b6; --gold:#f0d27e; --text:#f1faf6; --muted:#b4d4c9;
+  --shadow:0 8px 30px rgba(0,0,0,.5);
 }
 *{box-sizing:border-box} html,body{margin:0;height:100%}
 /* visible, comfortable scrollbars everywhere (pywebview hides them by default) */
@@ -10,8 +10,8 @@
 ::-webkit-scrollbar-track{background:#0c2420}
 ::-webkit-scrollbar-thumb{background:#2c5e54;border:3px solid #0c2420;border-radius:8px}
 ::-webkit-scrollbar-thumb:hover{background:var(--emerald)}
-body{display:flex;font:15px/1.5 "Segoe UI",system-ui,sans-serif;
-  background:radial-gradient(1200px 800px at 80% -10%,#173f38,var(--bg));color:var(--text)}
+body{display:flex;font:15px/1.6 "Segoe UI",system-ui,sans-serif;
+  background:radial-gradient(1200px 800px at 80% -10%,#16413a,var(--bg));color:var(--text)}
 #sidebar{width:260px;flex:0 0 260px;background:linear-gradient(180deg,var(--panel),#0c2420);
   padding:22px 16px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow);z-index:2}
 .brand{font-size:20px;font-weight:800;letter-spacing:.5px;margin:0 0 8px}
@@ -80,7 +80,8 @@ input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);
 .map-stage{position:relative;transform-origin:top left}
 .map-stage img,.map-stage canvas{position:absolute;top:0;left:0;image-rendering:pixelated}
 .marker{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-1px,-1px);
-  border:1px solid rgba(0,0,0,.6);cursor:pointer;box-sizing:border-box;z-index:5}
+  border:2px solid rgba(0,0,0,.85);cursor:pointer;box-sizing:border-box;z-index:5;
+  box-shadow:0 0 0 1px rgba(255,255,255,.55),0 1px 4px rgba(0,0,0,.6)}
 .marker:hover{outline:2px solid #fff;z-index:6}
 .m-npc{background:#4aa3ff}
 .m-trainer{background:#ff5b5b}
@@ -125,23 +126,27 @@ input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);
 .enc-card .rb i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--emerald-bright))}
 
 /* ---- shared two-column rooms (Cast/Command/Timeline) ---- */
-.cols{display:flex;gap:16px;align-items:flex-start}
-.col-list{width:330px;flex:0 0 330px;display:flex;flex-direction:column;gap:6px}
+.cols{display:flex;gap:22px;align-items:flex-start}
+.col-list{width:340px;flex:0 0 340px;display:flex;flex-direction:column;gap:8px}
 .col-main{flex:1;min-width:0}
 /* keep long code/doc panels from making the page absurdly tall; they scroll inside */
 .codeview,.docview{max-height:calc(100vh - 170px)}
-.row-item{background:var(--panel);border:1px solid #1d4a43;border-radius:10px;padding:9px 11px;cursor:pointer;transition:.12s}
+.docview{max-width:900px;font-size:15px;line-height:1.7}
+.codeview{font-size:13.5px;line-height:1.6}
+.row-item{background:var(--panel);border:1px solid #265a50;border-left:3px solid #2c5e54;
+  border-radius:10px;padding:11px 13px;cursor:pointer;transition:.12s}
 .row-item:hover{border-color:var(--emerald-bright);background:var(--panel2)}
-.row-item.sel{border-color:var(--gold)}
-.row-item .t{font-weight:600;font-size:13px;word-break:break-word}
-.row-item .s{color:var(--muted);font-size:11px;word-break:break-word}
+.row-item.sel{border-left-color:var(--gold);border-color:var(--gold)}
+.row-item .t{font-weight:600;font-size:13.5px;word-break:break-word}
+.row-item .s{color:var(--muted);font-size:11.5px;word-break:break-word;margin-top:2px}
 .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:6px;margin-right:5px;background:#0006}
 .tag.npc{color:#4aa3ff}.tag.trainer{color:#ff5b5b}.tag.item{color:#e8c66b}.tag.sign{color:#9fb0aa}
 .codeview{background:#06140f;border:1px solid #1d4a43;border-radius:12px;padding:14px;
   font:13px/1.5 "Consolas","Courier New",monospace;white-space:pre-wrap;color:#cfe;overflow:auto}
 .docview{background:var(--panel);border:1px solid #1d4a43;border-radius:12px;padding:18px 20px;
   white-space:pre-wrap;line-height:1.55;overflow:auto}
-.section-h{color:var(--gold);font-size:12px;font-weight:700;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.4px}
+.section-h{color:var(--gold);font-size:14px;font-weight:800;margin:14px 0 7px;text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid #2c5e54;padding-bottom:4px}
 .party-box{background:#11302a;border:1px solid #2c5e54;border-radius:10px;padding:12px;margin-top:14px;
   font:12px/1.5 "Consolas",monospace;white-space:pre-wrap;color:#d8efe6}
 .hit{font-size:12px;padding:5px 8px;border-bottom:1px solid #14342e;cursor:pointer}

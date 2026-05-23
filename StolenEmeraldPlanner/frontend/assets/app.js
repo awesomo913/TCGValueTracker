@@ -18,6 +18,31 @@ const api = {
     if (!r.ok) throw new Error('map load failed (' + r.status + ')');
     return r.json();
   },
+  async scriptTrainer(folder, label) {
+    const r = await fetch('/api/script_trainer/' + encodeURIComponent(folder) + '/' + encodeURIComponent(label));
+    if (!r.ok) throw new Error('script load failed (' + r.status + ')');
+    return r.json();
+  },
+  async history() {
+    const r = await fetch('/api/history');
+    if (!r.ok) throw new Error('repo not found (' + r.status + ')');
+    return r.json();
+  },
+  async historyDoc(rel) {
+    const r = await fetch('/api/history/doc?rel=' + encodeURIComponent(rel));
+    if (!r.ok) throw new Error('doc load failed (' + r.status + ')');
+    return r.json();
+  },
+  async historySearch(q) {
+    const r = await fetch('/api/history/search?q=' + encodeURIComponent(q));
+    if (!r.ok) throw new Error('search failed (' + r.status + ')');
+    return r.json();
+  },
+  async timeline() {
+    const r = await fetch('/api/timeline');
+    if (!r.ok) throw new Error('repo not found (' + r.status + ')');
+    return r.json();
+  },
 };
 
 const state = { atlas: null };
@@ -39,6 +64,9 @@ async function ensureAtlas() {
 const rooms = {
   atlas: () => window.renderAtlas(view, ensureAtlas, setStatus),
   mapview: () => window.renderMapView(view, api, setStatus),
+  cast: () => window.renderCast(view, api, setStatus),
+  command: () => window.renderCommand(view, api, setStatus),
+  timeline: () => window.renderTimeline(view, api, setStatus),
 };
 
 function activate(room) {

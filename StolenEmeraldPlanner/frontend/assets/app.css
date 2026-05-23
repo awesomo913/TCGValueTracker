@@ -94,3 +94,26 @@ input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);
 .enc-card .meta{color:var(--muted);font-size:11px}
 .enc-card .rb{height:5px;border-radius:3px;background:#0006;margin-top:3px;overflow:hidden}
 .enc-card .rb i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--emerald-bright))}
+
+/* ---- shared two-column rooms (Cast/Command/Timeline) ---- */
+.cols{display:flex;gap:16px;height:calc(100vh - 120px)}
+.col-list{width:330px;flex:0 0 330px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.col-main{flex:1;overflow:auto}
+.row-item{background:var(--panel);border:1px solid #1d4a43;border-radius:10px;padding:9px 11px;cursor:pointer;transition:.12s}
+.row-item:hover{border-color:var(--emerald-bright);background:var(--panel2)}
+.row-item.sel{border-color:var(--gold)}
+.row-item .t{font-weight:600;font-size:13px;word-break:break-word}
+.row-item .s{color:var(--muted);font-size:11px;word-break:break-word}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:6px;margin-right:5px;background:#0006}
+.tag.npc{color:#4aa3ff}.tag.trainer{color:#ff5b5b}.tag.item{color:#e8c66b}.tag.sign{color:#9fb0aa}
+.codeview{background:#06140f;border:1px solid #1d4a43;border-radius:12px;padding:14px;
+  font:13px/1.5 "Consolas","Courier New",monospace;white-space:pre-wrap;color:#cfe;overflow:auto}
+.docview{background:var(--panel);border:1px solid #1d4a43;border-radius:12px;padding:18px 20px;
+  white-space:pre-wrap;line-height:1.55;overflow:auto}
+.section-h{color:var(--gold);font-size:12px;font-weight:700;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.4px}
+.party-box{background:#11302a;border:1px solid #2c5e54;border-radius:10px;padding:12px;margin-top:14px;
+  font:12px/1.5 "Consolas",monospace;white-space:pre-wrap;color:#d8efe6}
+.hit{font-size:12px;padding:5px 8px;border-bottom:1px solid #14342e;cursor:pointer}
+.hit:hover{background:var(--panel2)}
+.hit .ln{color:var(--gold);margin-right:6px}
+.var-count{margin-left:auto;background:#0006;color:var(--gold);font-size:11px;padding:1px 7px;border-radius:7px}

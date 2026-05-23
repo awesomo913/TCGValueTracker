@@ -1,10 +1,14 @@
 """Grade app screenshots for visual quality using the local llava vision model.
 
-Usage:  python tools/llava_grade.py <image.png> [<image2.png> ...]
-Calls the local Ollama server (llava:7b) and prints a score + notes per image.
+Usage:  python tools/llava_grade.py [--runs N] <image.png> [<image2.png> ...]
+
+llava:7b scores are noisy (±~2 across identical runs), so pass --runs N to grade
+each image N times and average — that cuts the variance and gives a stable number
+worth optimizing toward. Default --runs 1.
 """
 import base64
 import json
+import re
 import sys
 import urllib.request
 from pathlib import Path
@@ -37,17 +41,51 @@ def grade(img_path: str) -> str:
         return json.loads(r.read())["response"].strip()
 
 
+def _score_of(text: str):
+    m = re.search(r"SCORE:\s*([0-9]+(?:\.[0-9]+)?)", text)
+    return float(m.group(1)) if m else None
+
+
 def main():
-    if len(sys.argv) < 2:
-        print("usage: python tools/llava_grade.py <image.png> [...]")
+    args = sys.argv[1:]
+    runs = 1
+    if args and args[0] == "--runs":
+        runs = int(args[1])
+        args = args[2:]
+    if not args:
+        print("usage: python tools/llava_grade.py [--runs N] <image.png> [...]")
         return
-    for p in sys.argv[1:]:
+
+    totals = []
+    for p in args:
         print("=" * 64)
         print(Path(p).name)
-        try:
-            print(grade(p))
-        except Exception as e:  # noqa: BLE001 - report any grading failure, keep going
-            print(f"GRADE FAILED: {e}")
+        scores = []
+        last = ""
+        for _ in range(runs):
+            try:
+                last = grade(p)
+            except Exception as e:  # noqa: BLE001 - keep going on failure
+                print(f"GRADE FAILED: {e}")
+                continue
+            s = _score_of(last)
+            if s is not None:
+                scores.append(s)
+        if runs == 1:
+            print(last)
+        else:
+            avg = round(sum(scores) / len(scores), 2) if scores else None
+            print(f"AVG SCORE ({len(scores)} runs): {avg}   runs={scores}")
+            print(f"last notes:\n{last}")
+            if avg is not None:
+                totals.append((Path(p).name, avg))
+
+    if totals:
+        print("=" * 64)
+        print("SUMMARY (averaged):")
+        for name, avg in totals:
+            print(f"  {avg:>5}  {name}")
+        print(f"  OVERALL AVG: {round(sum(a for _, a in totals) / len(totals), 2)}")
 
 
 if __name__ == "__main__":

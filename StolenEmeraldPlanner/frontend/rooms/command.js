@@ -9,7 +9,8 @@ window.renderCommand = async function (view, api, setStatus) {
     api
       .historyDoc(rel)
       .then((r) => {
-        mount(docView, el('div', { cls: 'section-h', text: rel }), document.createTextNode(r.text));
+        const body = window.renderMarkdown ? window.renderMarkdown(r.text) : [document.createTextNode(r.text)];
+        mount(docView, el('div', { cls: 'section-h', text: rel }), ...body);
         if (gotoLine) {
           // best-effort: scroll near the line by ratio
           const lines = r.text.split('\n').length || 1;

@@ -16,8 +16,14 @@ window.renderTimeline = async function (view, api, setStatus) {
     const rows = points.map((p) =>
       el(
         'div',
-        { style: { marginBottom: '8px' } },
-        el('div', {}, el('b', { text: `${v} == ${p.var_value}` })),
+        { style: { marginBottom: '10px', borderLeft: '3px solid #2c5e54', paddingLeft: '10px' } },
+        el(
+          'div',
+          {},
+          el('span', { cls: 'sl-label', text: v }),
+          el('span', { text: ' reaches ' }),
+          el('span', { cls: 'var-count', text: p.var_value })
+        ),
         el('div', { cls: 's', text: `on ${pretty(p.map)} → ${p.script}` })
       )
     );
@@ -58,9 +64,12 @@ window.renderTimeline = async function (view, api, setStatus) {
     return;
   }
 
+  const narrBody = st.data.narrative
+    ? (window.renderMarkdown ? window.renderMarkdown(st.data.narrative) : [document.createTextNode(st.data.narrative)])
+    : [document.createTextNode('(no narrative doc found)')];
   mount(narrative,
     el('div', { cls: 'section-h', text: st.data.narrative_name || 'Narrative' }),
-    document.createTextNode(st.data.narrative || '(no narrative doc found)'));
+    ...narrBody);
 
   const search = el('input', { placeholder: 'Filter flags…', style: { minWidth: '220px' } });
   search.addEventListener('input', () => showVars(search.value));

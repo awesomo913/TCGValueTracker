@@ -68,10 +68,17 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
         el('div', { cls: 'mon-grid' }, ...blk.mons.map(monCard))
       )
     );
+    const legend = el(
+      'div',
+      { cls: 'legend' },
+      el('span', { text: 'Rarity:' }),
+      el('span', { cls: 'lg' }, el('span', { cls: 'bar' }), 'longer = more common'),
+      el('span', { cls: 'lg', text: 'Method shown per group (land / water / rock smash / fishing)' })
+    );
     mount(
       view,
       head,
-      ...(blocks.length ? blocks : [el('div', { cls: 'empty', text: 'No wild encounters on this map.' })])
+      ...(blocks.length ? [legend, ...blocks] : [el('div', { cls: 'empty', text: 'No wild encounters on this map.' })])
     );
   }
 

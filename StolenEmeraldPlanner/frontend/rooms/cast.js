@@ -21,6 +21,21 @@ window.renderCast = async function (view, api, setStatus) {
     return row;
   }
 
+  function scriptBody(body) {
+    if (!body) return el('div', { cls: 's', text: '(script body not found in scripts.inc)' });
+    const wrap = el('div', {});
+    for (const line of body.split('\n')) {
+      const t = line.trim();
+      let cls = '';
+      if (/^\w+::?$/.test(t)) cls = 'sl-label';
+      else if (t.startsWith('@')) cls = 'sl-comment';
+      const ln = el('div', cls ? { cls } : {});
+      ln.textContent = line || ' ';
+      wrap.appendChild(ln);
+    }
+    return wrap;
+  }
+
   async function openScript(label) {
     if (!label) {
       mount(codeView, document.createTextNode('(no script attached)'));
@@ -35,7 +50,7 @@ window.renderCast = async function (view, api, setStatus) {
       return;
     }
     const parts = [el('div', { cls: 'section-h', text: label })];
-    parts.push(el('div', {}, r.body || '(script body not found in scripts.inc)'));
+    parts.push(scriptBody(r.body));
     if (r.trainer) {
       parts.push(el('div', { cls: 'party-box' }, el('div', { cls: 'section-h', text: r.trainer }), r.party));
     }

@@ -166,6 +166,14 @@ input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);
 .row-item .t{font-weight:600;font-size:13.5px;word-break:break-word}
 .row-item .s{color:var(--muted);font-size:11.5px;word-break:break-word;margin-top:2px}
 .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:6px;margin-right:5px;background:#0006}
+/* animated overworld NPC sprite (16x32 frames, scaled 2x; cycles 3 frames) */
+.ow{width:32px;height:64px;flex:0 0 32px;background-repeat:no-repeat;background-size:auto 64px;
+  background-position:0 0;image-rendering:pixelated;animation:owwalk .8s steps(3) infinite}
+@keyframes owwalk{from{background-position:0 0}to{background-position:-96px 0}}
+/* animated Pokemon front sprite (2-frame vertical sheet, scaled 2x) */
+.mon-anim{width:128px;height:128px;background-repeat:no-repeat;background-size:128px auto;
+  background-position:0 0;image-rendering:pixelated;animation:monbob .7s steps(2) infinite}
+@keyframes monbob{from{background-position:0 0}to{background-position:0 -256px}}
 .tag.npc{color:#4aa3ff}.tag.trainer{color:#ff5b5b}.tag.item{color:#e8c66b}.tag.sign{color:#9fb0aa}
 .codeview{background:#06140f;border:1px solid #1d4a43;border-radius:12px;padding:14px;
   font:13px/1.5 "Consolas","Courier New",monospace;white-space:pre-wrap;color:#cfe;overflow:auto}

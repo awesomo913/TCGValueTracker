@@ -38,16 +38,15 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus, api) {
         text: 'no sprite',
       });
     if (!folder) return ph();
-    const img = el('img', {
-      src: spriteUrl(species, big ? 'front' : null),
-      alt: monName(species),
-      loading: 'lazy',
-    });
     if (big) {
-      img.style.width = '128px';
-      img.style.height = '128px';
-      img.style.imageRendering = 'pixelated';
+      // animated 2-frame front sprite (CSS steps over the vertical sheet)
+      return el('div', {
+        cls: 'mon-anim',
+        style: { backgroundImage: `url("${spriteUrl(species, 'anim')}")` },
+        title: monName(species),
+      });
     }
+    const img = el('img', { src: spriteUrl(species, null), alt: monName(species), loading: 'lazy' });
     img.addEventListener('error', () => img.replaceWith(ph()));
     return img;
   }

@@ -14,6 +14,7 @@ from backend.engine import (
     mapdetail,
     maprender,
     maps,
+    ow_sprite,
     roadmap,
     scripts,
     species,
@@ -148,10 +149,22 @@ def get_map_render(folder: str):
     return FileResponse(out)
 
 
+@app.get("/api/ow/{gfx_id}")
+def get_ow_sprite(gfx_id: str):
+    """Overworld sprite sheet for an object_event graphics id (animated in UI)."""
+    if not config.repo_exists():
+        raise HTTPException(status_code=503, detail="repo not found")
+    p = ow_sprite.resolve(config.repo_path(), gfx_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="overworld sprite not found")
+    return FileResponse(p)
+
+
 @app.get("/api/sprite/{species_const}")
 def get_sprite(species_const: str, kind: str = "icon"):
     d = species.sprite_dir(config.repo_path(), species_const)
-    fname = {"icon": "icon.png", "front": "anim_front.png"}.get(kind, "icon.png")
+    # kind=anim -> full multi-frame front sheet (animated in UI); front -> first frame
+    fname = {"icon": "icon.png", "front": "anim_front.png", "anim": "anim_front.png"}.get(kind, "icon.png")
     if d is None or not (d / fname).is_file():
         diagnostics.log("DECISION", f"missing_sprite={species_const} kind={kind}")
         raise HTTPException(status_code=404, detail="sprite not found")

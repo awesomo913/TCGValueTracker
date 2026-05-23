@@ -6,12 +6,20 @@ window.renderCast = async function (view, api, setStatus) {
   const codeView = el('div', { cls: 'codeview', text: 'Pick a map, then click a person, trainer, item ball, or sign to see its script.' });
   const main = el('div', { cls: 'col-main' }, codeView);
 
-  function entityRow(kind, tagCls, label, sub, scriptLabel) {
-    const row = el(
+  function entityRow(kind, tagCls, label, sub, scriptLabel, gfx) {
+    // animated overworld sprite (background-image -> 404 just shows blank, no broken icon)
+    const ow = gfx ? el('div', { cls: 'ow', style: { backgroundImage: `url("/api/ow/${encodeURIComponent(gfx)}")` } }) : null;
+    const textCol = el(
       'div',
-      { cls: 'row-item', 'data-script': scriptLabel || '' },
+      { style: { flex: '1', minWidth: '0' } },
       el('div', { cls: 't' }, el('span', { cls: 'tag ' + tagCls, text: kind }), label),
       el('div', { cls: 's', text: sub })
+    );
+    const row = el(
+      'div',
+      { cls: 'row-item', 'data-script': scriptLabel || '', style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+      ...(ow ? [ow] : []),
+      textCol
     );
     row.addEventListener('click', () => {
       listCol.querySelectorAll('.row-item').forEach((r) => r.classList.remove('sel'));
@@ -69,7 +77,7 @@ window.renderCast = async function (view, api, setStatus) {
         const add = (arr, kind, tag, labelFn, subFn) => {
           if (!arr.length) return;
           rows.push(el('div', { cls: 'section-h', text: `${kind} (${arr.length})` }));
-          arr.forEach((o) => rows.push(entityRow(tag, tag, labelFn(o), subFn(o), o.script)));
+          arr.forEach((o) => rows.push(entityRow(tag, tag, labelFn(o), subFn(o), o.script, o.graphics_id)));
         };
         add(d.trainers, 'trainer', 'trainer', (o) => o.graphics_id.replace('OBJ_EVENT_GFX_', ''), (o) => `(${o.x},${o.y}) · sight ${o.sight} · ${o.script}`);
         add(d.npcs, 'npc', 'npc', (o) => o.graphics_id.replace('OBJ_EVENT_GFX_', ''), (o) => `(${o.x},${o.y}) · ${o.script || 'no script'}`);

@@ -2,7 +2,7 @@ import io
 import threading
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
@@ -16,6 +16,7 @@ from backend.engine import (
     maps,
     ow_sprite,
     roadmap,
+    sandbox,
     scripts,
     species,
     timeline,
@@ -250,6 +251,24 @@ def get_timeline():
         payload = timeline.build(config.repo_path())
         cache.set_payload("timeline_v2", payload, sig)
     return payload
+
+
+@app.get("/api/sandbox")
+def get_sandbox():
+    """Load the design proposal (from app-data, not the repo)."""
+    return sandbox.load()
+
+
+@app.put("/api/sandbox")
+async def put_sandbox(request: Request):
+    """Save the design proposal to app-data. NEVER writes to the StolenEmerald repo."""
+    try:
+        body = await request.json()
+        sandbox.save(body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    diagnostics.log("STATE", "sandbox proposal saved (app-data only)")
+    return {"ok": True}
 
 
 # static frontend mounted last so /api/* wins

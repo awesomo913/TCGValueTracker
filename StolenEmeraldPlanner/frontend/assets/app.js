@@ -57,6 +57,20 @@ const api = {
   roadmap() {
     return getJSON('roadmap', '/api/roadmap', 'roadmap');
   },
+  async sandbox() {
+    const r = await fetch('/api/sandbox'); // mutable — never cached
+    if (!r.ok) throw new Error('sandbox load failed (' + r.status + ')');
+    return r.json();
+  },
+  async saveSandbox(data) {
+    const r = await fetch('/api/sandbox', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) throw new Error('sandbox save failed (' + r.status + ')');
+    return r.json();
+  },
 };
 
 const state = { atlas: null };
@@ -82,6 +96,7 @@ const rooms = {
   command: () => window.renderCommand(view, api, setStatus),
   timeline: () => window.renderTimeline(view, api, setStatus),
   roadmap: () => window.renderRoadmap(view, api, setStatus),
+  sandbox: () => window.renderSandbox(view, api, setStatus),
 };
 
 let currentRoom = 'atlas';

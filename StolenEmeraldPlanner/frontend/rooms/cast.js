@@ -1,5 +1,5 @@
 window.renderCast = async function (view, api, setStatus) {
-  const pretty = (n) => n.replace(/^MAP_/, '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const pretty = (n) => n.replace(/^MAP_/, '').replace(/_/g, ' ').replace(/([A-Za-z])(\d)/g, '$1 $2').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   const st = { folder: null, detail: null, list: [] };
 
   const listCol = el('div', { cls: 'col-list' });
@@ -90,7 +90,7 @@ window.renderCast = async function (view, api, setStatus) {
     mount(view, el('div', { cls: 'empty' }, 'Could not read the repo. ', e.message));
     return;
   }
-  st.list = maps.map((m) => m.name).sort();
+  st.list = maps.map((m) => m.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const dl = el('datalist', { id: 'castmaplist' }, ...st.list.map((n) => el('option', { value: n })));
   const input = el('input', { list: 'castmaplist', placeholder: `Pick from ${st.list.length} maps…`, style: { minWidth: '320px' } });
   input.addEventListener('change', () => {

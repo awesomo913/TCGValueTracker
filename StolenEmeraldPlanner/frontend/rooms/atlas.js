@@ -8,9 +8,15 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
     return;
   }
 
-  const mapNames = Object.keys(data.maps).sort();
   const pretty = (n) =>
-    n.replace(/^MAP_/, '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+    n
+      .replace(/^MAP_/, '')
+      .replace(/_/g, ' ')
+      .replace(/([A-Za-z])(\d)/g, '$1 $2') // "Route101" -> "Route 101"
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  const byName = (a, b) => pretty(a).localeCompare(pretty(b), undefined, { numeric: true });
+  const mapNames = Object.keys(data.maps).sort(byName);
   const monName = (s) => s.replace(/^SPECIES_/, '').replace(/_/g, ' ').toLowerCase();
   const spriteUrl = (s, kind) =>
     '/api/sprite/' + encodeURIComponent(s) + (kind ? '?kind=' + kind : '');
@@ -120,7 +126,18 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
       search,
       el('span', { cls: 'status', text: `${shown.length} shown` })
     );
-    const cards = shown.map((n) => {
+    const ORDER = ['Routes', 'Towns & Cities', 'Caves', 'Mountains', 'Forests', 'Sea & Islands', 'Other Areas'];
+    const category = (n) => {
+      const s = n.toUpperCase();
+      if (s.includes('ROUTE')) return 'Routes';
+      if (s.includes('CITY') || s.includes('TOWN')) return 'Towns & Cities';
+      if (s.includes('CAVE') || s.includes('TUNNEL') || s.includes('GROTTO') || s.includes('CHAMBER')) return 'Caves';
+      if (s.includes('MT_') || s.includes('MOUNTAIN') || s.includes('ASCENT') || s.includes('PEAK')) return 'Mountains';
+      if (s.includes('FOREST') || s.includes('WOODS')) return 'Forests';
+      if (s.includes('SEA') || s.includes('OCEAN') || s.includes('UNDERWATER') || s.includes('ISLAND') || s.includes('WATER')) return 'Sea & Islands';
+      return 'Other Areas';
+    };
+    const mapCard = (n) => {
       const count = Object.values(data.maps[n].methods).reduce((a, b) => a + b.mons.length, 0);
       return el(
         'div',
@@ -128,8 +145,18 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
         el('div', { text: pretty(n) }),
         el('div', { cls: 'mt', text: `${count} wild mon` })
       );
-    });
-    mount(view, head, el('div', { cls: 'map-list' }, ...cards));
+    };
+    const groups = {};
+    for (const n of shown) (groups[category(n)] = groups[category(n)] || []).push(n);
+    const children = [];
+    for (const cat of ORDER) {
+      const list = groups[cat];
+      if (!list || !list.length) continue;
+      list.sort(byName);
+      children.push(el('div', { cls: 'region-h' }, cat, el('span', { cls: 'rc', text: list.length + ' maps' })));
+      for (const n of list) children.push(mapCard(n));
+    }
+    mount(view, head, el('div', { cls: 'map-list' }, ...children));
     search.focus();
     search.setSelectionRange(filter.length, filter.length);
   }

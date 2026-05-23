@@ -16,11 +16,17 @@ body{display:flex;font:15px/1.6 "Segoe UI",system-ui,sans-serif;
   padding:22px 16px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow);z-index:2}
 .brand{font-size:20px;font-weight:800;letter-spacing:.5px;margin:0 0 8px}
 .brand span{color:var(--emerald-bright);display:block;font-weight:600;font-size:14px;opacity:.85}
-.nav-item{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;
+.nav-item{display:flex;justify-content:flex-start;align-items:center;gap:11px;text-align:left;
   background:transparent;border:1px solid transparent;color:var(--text);padding:11px 13px;border-radius:12px;
-  cursor:pointer;font-size:14px;transition:.15s}
+  cursor:pointer;font-size:14px;transition:background .15s,transform .1s,box-shadow .15s;width:100%}
+.nav-item svg{width:19px;height:19px;flex:0 0 19px;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.85;transition:.15s}
 .nav-item:hover:not(:disabled){background:var(--panel2)}
-.nav-item.active{background:linear-gradient(90deg,var(--emerald),#1c7a5c);font-weight:700;box-shadow:var(--shadow)}
+.nav-item:hover:not(:disabled) svg{opacity:1}
+.nav-item:active:not(:disabled){transform:translateY(1px)}
+.nav-item.active{background:linear-gradient(90deg,var(--emerald),#1c7a5c);font-weight:700;
+  box-shadow:0 4px 16px rgba(47,191,143,.35)}
+.nav-item.active svg{opacity:1}
 .nav-item:disabled{opacity:.45;cursor:default}
 #rescan{margin-top:auto;background:var(--panel2);border:1px solid #2c5e54;color:var(--text);
   padding:10px;border-radius:10px;cursor:pointer}
@@ -49,6 +55,16 @@ body{display:flex;font:15px/1.6 "Segoe UI",system-ui,sans-serif;
 .rm-progress{height:10px;border-radius:6px;background:#0006;overflow:hidden;margin-bottom:18px;max-width:520px}
 .rm-progress i{display:block;height:100%;background:linear-gradient(90deg,var(--emerald),var(--emerald-bright))}
 #view{flex:1;overflow:auto;padding:28px 34px}
+/* seamless room transition: re-triggered on every nav change */
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#view.anim{animation:viewIn .24s cubic-bezier(.22,.61,.36,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+/* region group headers in the Atlas */
+.region-h{grid-column:1/-1;color:var(--gold);font-size:13px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.6px;margin:18px 0 2px;padding-bottom:6px;border-bottom:1px solid #2c5e54;display:flex;
+  align-items:center;gap:9px}
+.region-h:first-child{margin-top:0}
+.region-h .rc{background:#0006;color:var(--muted);font-size:11px;font-weight:600;padding:1px 8px;border-radius:8px}
 .view-head{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
 .view-head h2{margin:0;font-size:24px}
 input,select{background:var(--panel);border:1px solid #2c5e54;color:var(--text);

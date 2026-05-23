@@ -1,6 +1,6 @@
 window.renderTimeline = async function (view, api, setStatus) {
   const st = { data: null };
-  const pretty = (n) => n.replace(/^MAP_/, '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const pretty = (n) => n.replace(/^MAP_/, '').replace(/_/g, ' ').replace(/([A-Za-z])(\d)/g, '$1 $2').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   const varName = (v) => v.replace(/^VAR_/, '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
   const listCol = el('div', { cls: 'col-list' });

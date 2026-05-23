@@ -255,7 +255,7 @@ window.renderMapView = async function (view, api, setStatus) {
     mount(view, el('div', { cls: 'empty', text: 'Unexpected map list shape from server.' }));
     return;
   }
-  st.list = maps.map((m) => m.name).sort();
+  st.list = maps.map((m) => m.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
   const dl = el('datalist', { id: 'maplist' }, ...st.list.map((n) => el('option', { value: n })));
   const input = el('input', {

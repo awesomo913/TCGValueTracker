@@ -89,6 +89,10 @@ function activate(room) {
   );
   if (rooms[room]) rooms[room]();
   else mount(view, el('div', { cls: 'empty', text: 'Coming soon.' }));
+  // re-trigger the seamless fade-in
+  view.classList.remove('anim');
+  void view.offsetWidth; // force reflow so the animation restarts
+  view.classList.add('anim');
 }
 
 // --- live update detection: poll the repo signature; refresh on change ---

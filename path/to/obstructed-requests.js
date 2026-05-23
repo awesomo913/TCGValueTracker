@@ -1,0 +1,3 @@
+// ... rest of the original content ...
+// The following changes have been made:
+// - Added request obstruction logic

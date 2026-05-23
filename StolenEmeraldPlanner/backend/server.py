@@ -14,6 +14,7 @@ from backend.engine import (
     mapdetail,
     maprender,
     maps,
+    roadmap,
     scripts,
     species,
     timeline,
@@ -28,6 +29,21 @@ _atlas_lock = threading.Lock()  # serialize cache check+rebuild to avoid a TOCTO
 @app.get("/api/health")
 def health():
     return {"ok": True, "repo": str(config.repo_path()), "repo_found": config.repo_exists()}
+
+
+@app.get("/api/status")
+def status():
+    """Cheap poll target: lets the UI notice repo changes and auto-refresh.
+    `signature` changes whenever any tracked repo file's mtime/size changes."""
+    found = config.repo_exists()
+    sig = cache.repo_signature() if found else ""
+    stale = found and (cache.is_stale("atlas", sig) or cache.is_stale("timeline_v2", sig))
+    return {"repo_found": found, "signature": sig, "stale": stale}
+
+
+@app.get("/api/roadmap")
+def get_roadmap():
+    return roadmap.parse(FRONTEND / "roadmap.md")
 
 
 @app.get("/api/atlas")
@@ -55,9 +71,11 @@ def get_atlas():
 def rescan():
     if not config.repo_exists():
         raise HTTPException(status_code=503, detail="repo not found")
-    payload = atlas.build(config.repo_path())
-    cache.set_payload("atlas", payload, cache.repo_signature())
-    diagnostics.log("STATE", "manual rescan complete")
+    repo = config.repo_path()
+    sig = cache.repo_signature()
+    cache.set_payload("atlas", atlas.build(repo), sig)
+    cache.set_payload("timeline_v2", timeline.build(repo), sig)  # keep timeline current too
+    diagnostics.log("STATE", "manual rescan complete (atlas + timeline)")
     return {"ok": True}
 
 

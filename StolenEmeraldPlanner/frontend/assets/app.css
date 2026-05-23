@@ -26,6 +26,28 @@ body{display:flex;font:15px/1.5 "Segoe UI",system-ui,sans-serif;
   padding:10px;border-radius:10px;cursor:pointer}
 #rescan:hover{border-color:var(--emerald-bright)}
 .status{font-size:12px;color:var(--muted);min-height:16px}
+.live{font-size:11px;min-height:14px;font-weight:600}
+.live.ok{color:var(--emerald-bright)}
+.live.bad{color:#ff7b7b}
+/* ---- Roadmap ---- */
+.rm-summary{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.rm-chip{background:var(--panel);border:1px solid #1d4a43;border-radius:10px;padding:8px 14px;font-size:13px}
+.rm-chip b{font-size:18px;display:block}
+.rm-chip.done b{color:var(--emerald-bright)}
+.rm-chip.wip b{color:var(--gold)}
+.rm-chip.planned b{color:#8fb3a9}
+.rm-section{margin-bottom:18px}
+.rm-section h3{margin:0 0 8px;color:var(--gold);font-size:15px}
+.rm-item{display:flex;align-items:flex-start;gap:10px;background:var(--panel);border:1px solid #1d4a43;
+  border-radius:10px;padding:9px 12px;margin:5px 0}
+.rm-item .box{flex:0 0 18px;width:18px;height:18px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800;margin-top:1px}
+.rm-item.done .box{background:#1c7a5c;color:#dffff1}
+.rm-item.wip .box{background:#6b5a1f;color:var(--gold)}
+.rm-item.planned .box{background:#163a34;color:#8fb3a9;border:1px solid #2c5e54}
+.rm-item.done .txt{color:var(--muted);text-decoration:line-through}
+.rm-progress{height:10px;border-radius:6px;background:#0006;overflow:hidden;margin-bottom:18px;max-width:520px}
+.rm-progress i{display:block;height:100%;background:linear-gradient(90deg,var(--emerald),var(--emerald-bright))}
 #view{flex:1;overflow:auto;padding:28px 34px}
 .view-head{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
 .view-head h2{margin:0;font-size:24px}

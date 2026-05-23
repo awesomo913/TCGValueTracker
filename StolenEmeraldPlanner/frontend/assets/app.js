@@ -43,6 +43,16 @@ const api = {
     if (!r.ok) throw new Error('repo not found (' + r.status + ')');
     return r.json();
   },
+  async status() {
+    const r = await fetch('/api/status');
+    if (!r.ok) throw new Error('status failed (' + r.status + ')');
+    return r.json();
+  },
+  async roadmap() {
+    const r = await fetch('/api/roadmap');
+    if (!r.ok) throw new Error('roadmap failed (' + r.status + ')');
+    return r.json();
+  },
 };
 
 const state = { atlas: null };
@@ -67,15 +77,54 @@ const rooms = {
   cast: () => window.renderCast(view, api, setStatus),
   command: () => window.renderCommand(view, api, setStatus),
   timeline: () => window.renderTimeline(view, api, setStatus),
+  roadmap: () => window.renderRoadmap(view, api, setStatus),
 };
 
+let currentRoom = 'atlas';
+
 function activate(room) {
+  currentRoom = room;
   document.querySelectorAll('.nav-item').forEach((b) =>
     b.classList.toggle('active', b.dataset.room === room)
   );
   if (rooms[room]) rooms[room]();
   else mount(view, el('div', { cls: 'empty', text: 'Coming soon.' }));
 }
+
+// --- live update detection: poll the repo signature; refresh on change ---
+const liveEl = document.getElementById('live');
+let lastSig = null;
+function setLive(text, cls) {
+  if (!liveEl) return;
+  liveEl.textContent = text;
+  liveEl.className = 'live ' + (cls || '');
+}
+async function pollStatus() {
+  try {
+    const s = await api.status();
+    if (!s.repo_found) {
+      setLive('● repo not found', 'bad');
+      return;
+    }
+    if (lastSig === null) {
+      lastSig = s.signature;
+    } else if (s.signature !== lastSig) {
+      lastSig = s.signature;
+      setStatus('Repo changed — refreshing…');
+      state.atlas = null; // bust client cache so the next fetch rebuilds
+      try {
+        activate(currentRoom); // re-render current room with fresh data
+      } catch (err) {
+        setStatus('Refresh error: ' + err.message); // don't let it kill the poll loop
+      }
+    }
+    setLive('● live', 'ok');
+  } catch (e) {
+    setLive('● offline', 'bad');
+  }
+}
+setInterval(pollStatus, 5000);
+pollStatus();
 
 document.querySelectorAll('.nav-item').forEach((b) => {
   b.addEventListener('click', () => {

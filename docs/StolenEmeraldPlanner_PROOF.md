@@ -71,3 +71,11 @@ tests pass against the real project data.
   card list plus the Pokémon's pictures placed right on the grass/water). All
   verified in a browser and rebuilt into the Windows app. The tool now has all
   four planned sections plus the visual Map View — five views total.
+- **2026-05-23 — Live updates + Roadmap.** The app now **checks the project for
+  changes on its own** every few seconds and refreshes what's on screen when you
+  edit the game files — no need to press anything (a small "● live" light shows
+  it's watching). The change-detector was strengthened to notice edits inside any
+  map file, not just added/removed files. Also added a **Roadmap** view that lists
+  what's shipped, what's in progress, and what's planned, with a progress bar —
+  one place to review all future plans. Proven in a browser: a simulated file
+  change made the app re-load its data automatically. Rebuilt into the Windows app.

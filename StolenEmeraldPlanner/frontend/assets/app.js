@@ -102,25 +102,30 @@ function activate(room) {
 
 // faded route background — preload then crossfade so there's no broken-image flash
 const _sceneEl = document.getElementById('scene');
-let _sceneFolder = null;
-window.setScene = (folder) => {
-  if (!folder) return window.clearScene();
-  if (folder === _sceneFolder) return; // already showing this map
-  _sceneFolder = folder;
-  const url = '/api/map_render/' + encodeURIComponent(folder) + '.png';
+let _sceneKey = null;
+// preload any image URL, then crossfade it in as the faded backdrop
+window.setSceneUrl = (url, key) => {
+  if (!url) return window.clearScene();
+  key = key || url;
+  if (key === _sceneKey) return; // already showing this scene
+  _sceneKey = key;
   const img = new Image();
   img.onload = () => {
-    if (_sceneFolder !== folder) return; // a newer scene was requested meanwhile
+    if (_sceneKey !== key) return; // a newer scene was requested meanwhile
     _sceneEl.style.backgroundImage = `url("${url}")`;
     _sceneEl.classList.add('on');
   };
   img.onerror = () => {
-    if (_sceneFolder === folder) window.clearScene();
+    if (_sceneKey === key) window.clearScene();
   };
   img.src = url;
 };
+window.setScene = (folder) => {
+  if (!folder) return window.clearScene();
+  window.setSceneUrl('/api/map_render/' + encodeURIComponent(folder) + '.png', folder);
+};
 window.clearScene = () => {
-  _sceneFolder = null;
+  _sceneKey = null;
   if (_sceneEl) _sceneEl.classList.remove('on');
 };
 

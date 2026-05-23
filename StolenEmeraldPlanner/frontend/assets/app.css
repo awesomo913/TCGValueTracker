@@ -57,6 +57,9 @@ body{display:flex;font:15px/1.6 "Segoe UI",system-ui,sans-serif;
 .rm-item.wip .box{background:#6b5a1f;color:var(--gold)}
 .rm-item.planned .box{background:#163a34;color:#8fb3a9;border:1px solid #2c5e54}
 .rm-item.done .txt{color:var(--muted);text-decoration:line-through}
+.rm-item.clickable{cursor:pointer;transition:.12s}
+.rm-item.clickable:hover{border-color:var(--emerald-bright);transform:translateX(2px)}
+.rm-item.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
 .rm-progress{height:10px;border-radius:6px;background:#0006;overflow:hidden;margin-bottom:18px;max-width:520px}
 .rm-progress i{display:block;height:100%;background:linear-gradient(90deg,var(--emerald),var(--emerald-bright))}
 #view{flex:1;overflow:auto;padding:28px 34px}

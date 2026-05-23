@@ -85,6 +85,18 @@ window.renderCommand = async function (view, api, setStatus) {
   });
   const picker = el('div', { cls: 'map-picker' }, el('h2', { text: 'Command Center' }), search);
   mount(view, picker, el('div', { cls: 'cols' }, listCol, main));
+  // faded game-map backdrop for atmosphere (prefer a town, else Littleroot/first)
+  try {
+    const names = (await api.maps()).maps.filter((m) => m.renderable).map((m) => m.name);
+    const pick =
+      names.find((n) => /littleroot/i.test(n)) ||
+      names.find((n) => /town$/i.test(n)) ||
+      names.find((n) => /city$/i.test(n)) ||
+      names[0];
+    if (pick) window.setScene(pick);
+  } catch (e) {
+    /* no backdrop if maps unavailable */
+  }
   showDocs();
   if (st.docs.length) openDoc(st.docs[0].rel);
 };

@@ -7,11 +7,17 @@ def _maps_root(repo: Path) -> Path:
 
 
 def list_maps(repo: Path):
-    """[{id, name, region_section, map_type}] sorted by name."""
+    """[{id, name, region_section, map_type, renderable}] sorted by name.
+
+    `renderable` = the map's layout exists in layouts.json (so /api/map_render
+    will succeed). Imported maps without a layout (e.g. some Kanto routes) are
+    flagged False so the UI can avoid picking them for backgrounds.
+    """
     out = []
     root = _maps_root(repo)
     if not root.is_dir():
         return out
+    layouts = layout_index(repo)
     for child in sorted(root.iterdir()):
         mj = child / "map.json"
         if not mj.is_file():
@@ -26,6 +32,7 @@ def list_maps(repo: Path):
                 "name": d.get("name", child.name),
                 "region_section": d.get("region_map_section", ""),
                 "map_type": d.get("map_type", ""),
+                "renderable": d.get("layout", "") in layouts,
             }
         )
     return out

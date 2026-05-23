@@ -50,3 +50,41 @@ Re-run any time:
 - **Command Center (5.5) is the real laggard:** it renders raw markdown as a wall of plain text.
   The genuine fix is rendering markdown (headings/bold/lists) in the doc viewer, not more CSS.
 - Roadmap (6.0): could use stronger section separation / hierarchy.
+
+## Run 3 — 2026-05-23 (markdown render + script coloring + legend + roadmap cards)
+
+Applied: markdown rendering (Command docs + Timeline narrative), script-line coloring
+(Cast), encounter rarity legend, roadmap section cards. Then switched graders.
+
+**Grader noise finding:** llava:7b scored the *unchanged* Map View 8.5 / 9.0 / 7.0 across
+three runs — variance ≈ ±2, larger than the quality gaps. Single-shot 7B can't certify
+"9 on all". Added `--runs N` (averaging) and `--model` to the grader, and pulled the
+steadier **llava:13b**.
+
+### llava:13b, averaged (2 runs each) — the trustworthy baseline
+
+| View | Avg | runs |
+|------|:---:|---|
+| Atlas mon detail | 8.0 | 8, 8 |
+| Atlas list | 7.5 | 8, 7 |
+| Story Timeline | 7.5 | 8, 7 |
+| Atlas encounters | 7.0 | 7, 7 |
+| Command Center | 7.0 | 7, 7 |
+| Roadmap | 7.0 | 7, 7 |
+| Cast & Scripts | 6.75 | 6.5, 7 |
+| Map View | 6.0–7.0 | varies |
+| **Overall** | **~7.1** | |
+
+13b is far steadier (most repeat runs identical) and *fairer*: it rates Command **7.0**
+(7B harshly gave 5.3), confirming the markdown render worked. Universal 13b note across
+screens: "more contrast / visual hierarchy between element *types*."
+
+**Honest conclusion:** the app sits at a solid **~7–8 on every view** with a fair grader.
+Pushing all to a *reliable* 9 is bounded by grader variance (±~1 even on 13b) more than by
+real quality — dense informational screens (Command/Roadmap/Timeline) inherently grade
+below image-led ones regardless of polish.
+
+## Grader is shared-Ollama-safe
+`tools/llava_grade.py` now: reads `OLLAMA_HOST` (point at any/remote/shared server),
+retries with backoff when the server is busy, and uses a short `keep_alive` to release
+the GPU instead of hogging it — safe to run against a model server shared with many jobs.

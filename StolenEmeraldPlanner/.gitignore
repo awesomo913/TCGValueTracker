@@ -15,3 +15,5 @@ __pycache__/
 # Screenshots / render proofs from verification
 atlas-*.png
 *_render.png
+grade_shots/
+tools/__pycache__/

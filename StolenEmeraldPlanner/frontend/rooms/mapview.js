@@ -274,8 +274,21 @@ window.renderMapView = async function (view, api, setStatus) {
     placeholder: `Pick from ${st.list.length} maps (try Route101)…`,
     style: { minWidth: '320px' },
   });
+  // clear on focus so the FULL list shows again (else the dropdown stays
+  // filtered to the current map and you can't browse back to other routes)
+  input.addEventListener('focus', () => {
+    input.dataset.prev = input.value;
+    input.value = '';
+  });
+  input.addEventListener('blur', () => {
+    if (!st.list.includes(input.value)) input.value = input.dataset.prev || '';
+  });
   input.addEventListener('change', () => {
-    if (st.list.includes(input.value)) loadMap(input.value);
+    if (st.list.includes(input.value)) {
+      input.dataset.prev = input.value;
+      loadMap(input.value);
+      input.blur();
+    }
   });
   const picker = el('div', { cls: 'map-picker' }, el('h2', { text: 'Map View' }), input, dl);
 

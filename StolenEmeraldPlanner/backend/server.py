@@ -26,6 +26,16 @@ FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 _atlas_lock = threading.Lock()  # serialize cache check+rebuild to avoid a TOCTOU race
 
 
+@app.middleware("http")
+async def _no_store(request, call_next):
+    """Local app: never let the browser/webview cache code or data, so updates
+    (new frontend after a rebuild, fresh map renders after a repo change) always
+    apply. Loopback fetches are cheap, so this costs ~nothing."""
+    resp = await call_next(request)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True, "repo": str(config.repo_path()), "repo_found": config.repo_exists()}

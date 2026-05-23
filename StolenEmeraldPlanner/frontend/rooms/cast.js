@@ -104,8 +104,20 @@ window.renderCast = async function (view, api, setStatus) {
   st.list = maps.map((m) => m.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const dl = el('datalist', { id: 'castmaplist' }, ...st.list.map((n) => el('option', { value: n })));
   const input = el('input', { list: 'castmaplist', placeholder: `Pick from ${st.list.length} maps…`, style: { minWidth: '320px' } });
+  // clear on focus so the full list shows again (browse back to any map)
+  input.addEventListener('focus', () => {
+    input.dataset.prev = input.value;
+    input.value = '';
+  });
+  input.addEventListener('blur', () => {
+    if (!st.list.includes(input.value)) input.value = input.dataset.prev || '';
+  });
   input.addEventListener('change', () => {
-    if (st.list.includes(input.value)) showMap(input.value);
+    if (st.list.includes(input.value)) {
+      input.dataset.prev = input.value;
+      showMap(input.value);
+      input.blur();
+    }
   });
   const picker = el('div', { cls: 'map-picker' }, el('h2', { text: 'Cast & Scripts' }), input, dl);
   mount(view, picker, el('div', { cls: 'cols' }, listCol, main));

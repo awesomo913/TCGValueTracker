@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 OLLAMA = "http://localhost:11434/api/generate"
-MODEL = "llava:7b"
+MODEL = "llava:7b"  # override with --model (e.g. llava:13b)
 
 PROMPT = (
     "You are a strict UX and visual-design grader. The image is ONE screen of a "
@@ -30,11 +30,11 @@ PROMPT = (
 )
 
 
-def grade(img_path: str) -> str:
+def grade(img_path: str, model: str = MODEL) -> str:
     data = Path(img_path).read_bytes()
     b64 = base64.b64encode(data).decode()
     body = json.dumps(
-        {"model": MODEL, "prompt": PROMPT, "images": [b64], "stream": False}
+        {"model": model, "prompt": PROMPT, "images": [b64], "stream": False}
     ).encode()
     req = urllib.request.Request(OLLAMA, body, {"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=300) as r:
@@ -49,12 +49,17 @@ def _score_of(text: str):
 def main():
     args = sys.argv[1:]
     runs = 1
-    if args and args[0] == "--runs":
-        runs = int(args[1])
+    model = MODEL
+    while args and args[0] in ("--runs", "--model"):
+        if args[0] == "--runs":
+            runs = int(args[1])
+        else:
+            model = args[1]
         args = args[2:]
     if not args:
-        print("usage: python tools/llava_grade.py [--runs N] <image.png> [...]")
+        print("usage: python tools/llava_grade.py [--runs N] [--model llava:13b] <image.png> [...]")
         return
+    print(f"[grader: model={model}, runs={runs}]")
 
     totals = []
     for p in args:
@@ -64,7 +69,7 @@ def main():
         last = ""
         for _ in range(runs):
             try:
-                last = grade(p)
+                last = grade(p, model)
             except Exception as e:  # noqa: BLE001 - keep going on failure
                 print(f"GRADE FAILED: {e}")
                 continue

@@ -52,3 +52,12 @@ tests pass against the real project data.
   and rarity. Verified working in a browser and packaged into a double-click
   Windows app. Three more sections (Cast & Scripts, Command Center, Story
   Timeline) are planned next.
+- **2026-05-23 — Phase 2 built: the visual Map View.** Added a screen that draws
+  each map exactly as it looks in the game (built from the game's own tile
+  artwork) and lays useful information on top: it shades the grass and water where
+  wild Pokémon appear, and marks every item ball, hidden item, person (NPC),
+  trainer, sign, door (warp), and story event. Click any marker to see its
+  details — for example, a story event shows the exact condition that triggers it.
+  Verified in a browser on Route 101 (the rendered map, the green encounter zones,
+  and the "Birch rescue" story trigger all displayed correctly) and rebuilt into
+  the Windows app.

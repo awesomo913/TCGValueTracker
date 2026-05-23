@@ -9,7 +9,7 @@ window.renderCast = async function (view, api, setStatus) {
   function entityRow(kind, tagCls, label, sub, scriptLabel) {
     const row = el(
       'div',
-      { cls: 'row-item' },
+      { cls: 'row-item', 'data-script': scriptLabel || '' },
       el('div', { cls: 't' }, el('span', { cls: 'tag ' + tagCls, text: kind }), label),
       el('div', { cls: 's', text: sub })
     );
@@ -57,7 +57,7 @@ window.renderCast = async function (view, api, setStatus) {
     mount(codeView, ...parts);
   }
 
-  function showMap(folder) {
+  function showMap(folder, openLabel) {
     st.folder = folder;
     mount(listCol, el('div', { cls: 's', text: 'Loading…' }));
     api
@@ -76,7 +76,17 @@ window.renderCast = async function (view, api, setStatus) {
         add(d.signs, 'sign', 'sign', () => 'Sign', (o) => `(${o.x},${o.y}) · ${o.script}`);
         if (!rows.length) rows.push(el('div', { cls: 's', text: 'No people, trainers, items, or signs on this map.' }));
         mount(listCol, ...rows);
-        mount(codeView, document.createTextNode('Click an entry to see its script.'));
+        if (openLabel) {
+          // deep-link from another room: select + open that script
+          const row = listCol.querySelector('.row-item[data-script="' + openLabel + '"]');
+          if (row) {
+            row.classList.add('sel');
+            row.scrollIntoView({ block: 'center' });
+          }
+          openScript(openLabel);
+        } else {
+          mount(codeView, document.createTextNode('Click an entry to see its script.'));
+        }
       })
       .catch((e) => mount(listCol, el('div', { cls: 's', text: 'Failed: ' + e.message })));
   }
@@ -99,9 +109,17 @@ window.renderCast = async function (view, api, setStatus) {
   const picker = el('div', { cls: 'map-picker' }, el('h2', { text: 'Cast & Scripts' }), input, dl);
   mount(view, picker, el('div', { cls: 'cols' }, listCol, main));
 
-  const start = st.list.includes('Route101') ? 'Route101' : st.list[0];
-  if (start) {
-    input.value = start;
-    showMap(start);
+  // honor a cross-room deep link (e.g. from a Map View marker), else default
+  const pending = window.pendingCast;
+  window.pendingCast = null;
+  if (pending && st.list.includes(pending.folder)) {
+    input.value = pending.folder;
+    showMap(pending.folder, pending.label);
+  } else {
+    const start = st.list.includes('Route101') ? 'Route101' : st.list[0];
+    if (start) {
+      input.value = start;
+      showMap(start);
+    }
   }
 };

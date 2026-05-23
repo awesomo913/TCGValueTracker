@@ -227,6 +227,16 @@ window.renderMapView = async function (view, api, setStatus) {
       rows.push(['runs', item.script]);
     }
     setDetail(layer.label, rows);
+    // seamless cross-room jump: open this marker's script in Cast & Scripts
+    if (item.script && st.detail) {
+      const jump = el('button', {
+        cls: 'back-btn',
+        style: { marginTop: '10px', borderColor: 'var(--emerald-bright)' },
+        text: 'Open script in Cast →',
+        onclick: () => window.openInCast(st.detail.folder, item.script),
+      });
+      detailBox.appendChild(jump);
+    }
   }
 
   async function loadMap(folder) {

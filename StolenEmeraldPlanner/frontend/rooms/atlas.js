@@ -146,6 +146,12 @@ window.renderAtlas = async function (view, ensureAtlas, setStatus) {
         el('div', { cls: 'mt', text: `${count} wild mon` })
       );
     };
+    if (!shown.length) {
+      mount(view, head, el('div', { cls: 'empty', text: `No maps match “${filter}”.` }));
+      search.focus();
+      search.setSelectionRange(filter.length, filter.length);
+      return;
+    }
     const groups = {};
     for (const n of shown) (groups[category(n)] = groups[category(n)] || []).push(n);
     const children = [];

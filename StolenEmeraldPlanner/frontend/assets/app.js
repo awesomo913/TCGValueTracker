@@ -1,57 +1,61 @@
+// Response cache so re-opening a tab or re-visiting a map/doc is instant.
+// Busted whenever the repo changes (see api.bust + pollStatus).
+const _cache = {};
+async function getJSON(key, url, errLabel) {
+  if (_cache[key] !== undefined) return _cache[key];
+  const r = await fetch(url);
+  if (!r.ok) throw new Error((errLabel || 'load') + ' failed (' + r.status + ')');
+  const data = await r.json();
+  _cache[key] = data;
+  return data;
+}
+
 const api = {
-  async atlas() {
-    const r = await fetch('/api/atlas');
-    if (!r.ok) throw new Error('repo not found (' + r.status + ')');
-    return r.json();
+  bust() {
+    for (const k in _cache) delete _cache[k];
+  },
+  atlas() {
+    return getJSON('atlas', '/api/atlas', 'repo not found');
   },
   async rescan() {
     const r = await fetch('/api/rescan', { method: 'POST' });
     return r.ok;
   },
-  async maps() {
-    const r = await fetch('/api/maps');
-    if (!r.ok) throw new Error('repo not found (' + r.status + ')');
-    return r.json();
+  maps() {
+    return getJSON('maps', '/api/maps', 'repo not found');
   },
-  async mapDetail(folder) {
-    const r = await fetch('/api/map/' + encodeURIComponent(folder));
-    if (!r.ok) throw new Error('map load failed (' + r.status + ')');
-    return r.json();
+  mapDetail(folder) {
+    return getJSON('map:' + folder, '/api/map/' + encodeURIComponent(folder), 'map load');
   },
-  async scriptTrainer(folder, label) {
-    const r = await fetch('/api/script_trainer/' + encodeURIComponent(folder) + '/' + encodeURIComponent(label));
-    if (!r.ok) throw new Error('script load failed (' + r.status + ')');
-    return r.json();
+  scriptTrainer(folder, label) {
+    return getJSON(
+      'st:' + folder + ':' + label,
+      '/api/script_trainer/' + encodeURIComponent(folder) + '/' + encodeURIComponent(label),
+      'script load'
+    );
   },
-  async history() {
-    const r = await fetch('/api/history');
-    if (!r.ok) throw new Error('repo not found (' + r.status + ')');
-    return r.json();
+  history() {
+    return getJSON('history', '/api/history', 'repo not found');
   },
-  async historyDoc(rel) {
-    const r = await fetch('/api/history/doc?rel=' + encodeURIComponent(rel));
-    if (!r.ok) throw new Error('doc load failed (' + r.status + ')');
-    return r.json();
+  historyDoc(rel) {
+    return getJSON('doc:' + rel, '/api/history/doc?rel=' + encodeURIComponent(rel), 'doc load');
   },
   async historySearch(q) {
+    // search is dynamic — never cached
     const r = await fetch('/api/history/search?q=' + encodeURIComponent(q));
     if (!r.ok) throw new Error('search failed (' + r.status + ')');
     return r.json();
   },
-  async timeline() {
-    const r = await fetch('/api/timeline');
-    if (!r.ok) throw new Error('repo not found (' + r.status + ')');
-    return r.json();
+  timeline() {
+    return getJSON('timeline', '/api/timeline', 'repo not found');
   },
   async status() {
-    const r = await fetch('/api/status');
+    const r = await fetch('/api/status'); // status is live — never cached
     if (!r.ok) throw new Error('status failed (' + r.status + ')');
     return r.json();
   },
-  async roadmap() {
-    const r = await fetch('/api/roadmap');
-    if (!r.ok) throw new Error('roadmap failed (' + r.status + ')');
-    return r.json();
+  roadmap() {
+    return getJSON('roadmap', '/api/roadmap', 'roadmap');
   },
 };
 
@@ -95,6 +99,12 @@ function activate(room) {
   view.classList.add('anim');
 }
 
+// cross-room deep link: open a map's script in Cast & Scripts from anywhere
+window.openInCast = (folder, label) => {
+  window.pendingCast = { folder, label };
+  activate('cast');
+};
+
 // --- live update detection: poll the repo signature; refresh on change ---
 const liveEl = document.getElementById('live');
 let lastSig = null;
@@ -115,7 +125,8 @@ async function pollStatus() {
     } else if (s.signature !== lastSig) {
       lastSig = s.signature;
       setStatus('Repo changed — refreshing…');
-      state.atlas = null; // bust client cache so the next fetch rebuilds
+      api.bust(); // clear all cached responses so the next fetch rebuilds
+      state.atlas = null;
       try {
         activate(currentRoom); // re-render current room with fresh data
       } catch (err) {
@@ -138,6 +149,7 @@ document.querySelectorAll('.nav-item').forEach((b) => {
 
 document.getElementById('rescan').addEventListener('click', async () => {
   setStatus('Rescanning…');
+  api.bust();
   state.atlas = null;
   try {
     if (!(await api.rescan())) {

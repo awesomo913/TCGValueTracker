@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 from backend import cache, config, diagnostics
-from backend.engine import atlas, maps, species
+from backend.engine import atlas, mapdetail, maprender, maps, species
 
 app = FastAPI(title="StolenEmerald Planner")
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
@@ -70,6 +70,44 @@ def _first_frame_png(path: Path) -> bytes:
         buf = io.BytesIO()
         frame.save(buf, format="PNG")
         return buf.getvalue()
+
+
+@app.get("/api/map/{folder}")
+def get_map_detail(folder: str):
+    if not config.repo_exists():
+        raise HTTPException(status_code=503, detail="repo not found")
+    detail = mapdetail.build(config.repo_path(), folder)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="map not found")
+    return detail
+
+
+@app.get("/api/map_render/{folder}.png")
+def get_map_render(folder: str):
+    if not config.repo_exists():
+        raise HTTPException(status_code=503, detail="repo not found")
+    repo = config.repo_path()
+    m = maps.get_map(repo, folder)
+    layout = maps.layout_index(repo).get(m.get("layout", "")) if m else None
+    if layout is None:
+        raise HTTPException(status_code=404, detail="layout not found")
+
+    cache_dir = config.app_data_dir() / "renders"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    out = cache_dir / f"{folder}.png"
+    block = repo / layout["blockdata_filepath"]
+    try:
+        fresh = out.is_file() and block.is_file() and out.stat().st_mtime >= block.stat().st_mtime
+    except OSError:
+        fresh = False
+    if not fresh:
+        try:
+            img = maprender.render_layout(repo, layout)
+            img.save(out)
+        except (OSError, ValueError, KeyError) as e:
+            diagnostics.log("CRASH", f"map_render failed folder={folder} err={e}")
+            raise HTTPException(status_code=500, detail=f"render failed: {e}")
+    return FileResponse(out)
 
 
 @app.get("/api/sprite/{species_const}")

@@ -105,8 +105,12 @@ def render_layout(repo: Path, layout: dict) -> Image.Image:
     palettes.update(_load_palettes(prim))
     palettes.update(_load_palettes(sec))  # secondary owns its own slots
 
-    tiles_prim = Image.open(prim / "tiles.png").convert("P")
-    tiles_sec = Image.open(sec / "tiles.png").convert("P")
+    # Use context managers so the source PNGs aren't left locked on Windows;
+    # convert() returns a fresh image that outlives the `with` block.
+    with Image.open(prim / "tiles.png") as _tp:
+        tiles_prim = _tp.convert("P")
+    with Image.open(sec / "tiles.png") as _ts:
+        tiles_sec = _ts.convert("P")
 
     meta_prim = _read_metatiles(prim)
     meta_sec = _read_metatiles(sec)

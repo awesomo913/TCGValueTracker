@@ -49,8 +49,21 @@ def get_map(repo: Path, folder_name: str):
         "map_type": d.get("map_type", ""),
         "object_events": d.get("object_events", []) or [],
         "warp_events": d.get("warp_events", []) or [],
+        "bg_events": d.get("bg_events", []) or [],
+        "coord_events": d.get("coord_events", []) or [],
         "connections": d.get("connections") or [],
     }
+
+
+def layout_index(repo: Path) -> dict:
+    """{LAYOUT_ID: layout dict} from data/layouts/layouts.json."""
+    import json as _json
+
+    p = repo / "data" / "layouts" / "layouts.json"
+    if not p.is_file():
+        return {}
+    raw = _json.loads(p.read_text(encoding="utf-8"))
+    return {x["id"]: x for x in raw.get("layouts", []) if x and x.get("id")}
 
 
 def parse_errors(repo: Path):

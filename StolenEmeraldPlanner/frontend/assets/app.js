@@ -8,6 +8,16 @@ const api = {
     const r = await fetch('/api/rescan', { method: 'POST' });
     return r.ok;
   },
+  async maps() {
+    const r = await fetch('/api/maps');
+    if (!r.ok) throw new Error('repo not found (' + r.status + ')');
+    return r.json();
+  },
+  async mapDetail(folder) {
+    const r = await fetch('/api/map/' + encodeURIComponent(folder));
+    if (!r.ok) throw new Error('map load failed (' + r.status + ')');
+    return r.json();
+  },
 };
 
 const state = { atlas: null };
@@ -26,7 +36,10 @@ async function ensureAtlas() {
   return state.atlas;
 }
 
-const rooms = { atlas: () => window.renderAtlas(view, ensureAtlas, setStatus) };
+const rooms = {
+  atlas: () => window.renderAtlas(view, ensureAtlas, setStatus),
+  mapview: () => window.renderMapView(view, api, setStatus),
+};
 
 function activate(room) {
   document.querySelectorAll('.nav-item').forEach((b) =>

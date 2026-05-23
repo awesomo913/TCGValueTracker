@@ -1,0 +1,63 @@
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from backend import cache, config, diagnostics
+from backend.engine import atlas, maps, species
+
+app = FastAPI(title="StolenEmerald Planner")
+FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+
+
+@app.get("/api/health")
+def health():
+    return {"ok": True, "repo": str(config.repo_path()), "repo_found": config.repo_exists()}
+
+
+@app.get("/api/atlas")
+def get_atlas():
+    if not config.repo_exists():
+        raise HTTPException(status_code=503, detail="StolenEmerald repo not found")
+    sig = cache.repo_signature()
+    if cache.is_stale("atlas", sig):
+        diagnostics.log("DECISION", "atlas cache miss -> rebuild")
+        payload = atlas.build(config.repo_path())
+        cache.set_payload("atlas", payload, sig)
+    else:
+        payload = cache.get_payload("atlas")
+    return payload
+
+
+@app.post("/api/rescan")
+def rescan():
+    if not config.repo_exists():
+        raise HTTPException(status_code=503, detail="repo not found")
+    payload = atlas.build(config.repo_path())
+    cache.set_payload("atlas", payload, cache.repo_signature())
+    diagnostics.log("STATE", "manual rescan complete")
+    return {"ok": True}
+
+
+@app.get("/api/maps")
+def get_maps():
+    if not config.repo_exists():
+        raise HTTPException(status_code=503, detail="repo not found")
+    repo = config.repo_path()
+    return {"maps": maps.list_maps(repo), "parse_errors": maps.parse_errors(repo)}
+
+
+@app.get("/api/sprite/{species_const}")
+def get_sprite(species_const: str, kind: str = "icon"):
+    d = species.sprite_dir(config.repo_path(), species_const)
+    fname = {"icon": "icon.png", "front": "anim_front.png"}.get(kind, "icon.png")
+    if d is None or not (d / fname).is_file():
+        diagnostics.log("DECISION", f"missing_sprite={species_const} kind={kind}")
+        raise HTTPException(status_code=404, detail="sprite not found")
+    return FileResponse(d / fname)
+
+
+# static frontend mounted last so /api/* wins
+if FRONTEND.is_dir():
+    app.mount("/", StaticFiles(directory=str(FRONTEND), html=True), name="frontend")

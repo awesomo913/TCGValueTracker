@@ -28,3 +28,25 @@ Re-run any time:
 1. **Text contrast** — muted gray body text on dark emerald panels reads too faint. Lighten body text / darken panels.
 2. **Density & spacing** — more breathing room, especially the 3-column rooms (Timeline, Cast, Command).
 3. **Color-coding by data type** — use color to distinguish kinds of data, not just as decoration.
+
+## Run 2 — 2026-05-23 (after contrast + spacing + marker theme pass)
+
+| # | View | Before | After | Δ |
+|---|------|:---:|:---:|:---:|
+| 1 | Atlas — map list | 7.0 | 8.0 | +1.0 |
+| 2 | Atlas — encounters | 7.0 | 7.5 | +0.5 |
+| 3 | Atlas — mon detail | 6.5 | 7.0 | +0.5 |
+| 4 | Map View | 8.5 | 9.0 | +0.5 |
+| 5 | Cast & Scripts | 7.0 | 6.0 | -1.0 (likely grader noise) |
+| 6 | Command Center | 5.5 | 5.5 | 0 |
+| 7 | Story Timeline | 5.0 | 7.0 | +2.0 |
+| 8 | Roadmap | 6.0 | 6.0 | 0 |
+
+**Overall avg: 6.5 → 7.0.** Theme pass: brighter `--muted`/`--text`, darker panels, +spacing in
+3-column rooms, larger section headings, stronger map markers.
+
+**Caveats / next:**
+- llava:7b is noisy — Cast's -1.0 after a *global* improvement is almost certainly variance.
+- **Command Center (5.5) is the real laggard:** it renders raw markdown as a wall of plain text.
+  The genuine fix is rendering markdown (headings/bold/lists) in the doc viewer, not more CSS.
+- Roadmap (6.0): could use stronger section separation / hierarchy.

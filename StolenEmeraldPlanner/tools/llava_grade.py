@@ -4,17 +4,36 @@ Usage:  python tools/llava_grade.py [--runs N] <image.png> [<image2.png> ...]
 
 llava:7b scores are noisy (±~2 across identical runs), so pass --runs N to grade
 each image N times and average — that cuts the variance and gives a stable number
-worth optimizing toward. Default --runs 1.
+worth optimizing toward. Default --runs 1. llava:13b (--model llava:13b) is much
+steadier.
+
+Shared Ollama: the model server is often shared with many other jobs. This grader
+is built for that — set OLLAMA_HOST to point at any (incl. remote/shared) server,
+it retries with backoff when the server is busy, and uses a short keep_alive so it
+releases the GPU instead of hogging it. Tunables (env):
+  OLLAMA_HOST (default http://localhost:11434)
+  LLAVA_MODEL, LLAVA_TIMEOUT, LLAVA_RETRIES, LLAVA_BACKOFF, LLAVA_KEEP_ALIVE
 """
 import base64
 import json
+import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
-OLLAMA = "http://localhost:11434/api/generate"
-MODEL = "llava:7b"  # override with --model (e.g. llava:13b)
+# Shared-Ollama friendly: the model server may be busy serving many others.
+# Point at any host with OLLAMA_HOST; tolerate contention with retries/backoff;
+# release the GPU after each call with a short keep_alive so we don't hog it.
+_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+OLLAMA = _HOST + "/api/generate"
+MODEL = os.environ.get("LLAVA_MODEL", "llava:7b")  # override with --model (e.g. llava:13b)
+TIMEOUT = int(os.environ.get("LLAVA_TIMEOUT", "300"))
+MAX_RETRIES = int(os.environ.get("LLAVA_RETRIES", "5"))
+BACKOFF = float(os.environ.get("LLAVA_BACKOFF", "3"))
+KEEP_ALIVE = os.environ.get("LLAVA_KEEP_ALIVE", "30s")  # unload soon = good citizen
 
 PROMPT = (
     "You are a strict UX and visual-design grader. The image is ONE screen of a "
@@ -31,14 +50,35 @@ PROMPT = (
 
 
 def grade(img_path: str, model: str = MODEL) -> str:
-    data = Path(img_path).read_bytes()
-    b64 = base64.b64encode(data).decode()
+    b64 = base64.b64encode(Path(img_path).read_bytes()).decode()
     body = json.dumps(
-        {"model": model, "prompt": PROMPT, "images": [b64], "stream": False}
+        {
+            "model": model,
+            "prompt": PROMPT,
+            "images": [b64],
+            "stream": False,
+            "keep_alive": KEEP_ALIVE,
+        }
     ).encode()
-    req = urllib.request.Request(OLLAMA, body, {"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=300) as r:
-        return json.loads(r.read())["response"].strip()
+    last_err = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            req = urllib.request.Request(OLLAMA, body, {"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                data = json.loads(r.read())
+            if isinstance(data, dict) and data.get("error"):
+                raise RuntimeError(data["error"])  # e.g. model loading / server busy
+            return (data.get("response") or "").strip()
+        except (urllib.error.URLError, TimeoutError, ConnectionError, RuntimeError, ValueError) as e:
+            last_err = e
+            if attempt < MAX_RETRIES - 1:
+                wait = BACKOFF * (2 ** attempt)
+                print(f"  [shared llava busy/err: {e} — retry {attempt + 1}/{MAX_RETRIES - 1} in {wait:.0f}s]")
+                time.sleep(wait)
+    raise RuntimeError(
+        f"llava unavailable after {MAX_RETRIES} tries at {OLLAMA} "
+        f"(shared server busy?): {last_err}"
+    )
 
 
 def _score_of(text: str):

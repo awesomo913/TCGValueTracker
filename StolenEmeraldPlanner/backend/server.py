@@ -1,8 +1,10 @@
+import io
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from PIL import Image
 
 from backend import cache, config, diagnostics
 from backend.engine import atlas, maps, species
@@ -48,6 +50,19 @@ def get_maps():
     return {"maps": maps.list_maps(repo), "parse_errors": maps.parse_errors(repo)}
 
 
+def _first_frame_png(path: Path) -> bytes:
+    """anim_front.png is a vertical/horizontal sprite sheet of square frames.
+    Crop the first frame (side = min dimension) so the portrait isn't squished.
+    Pure in-memory read of the repo file — never writes back."""
+    with Image.open(path) as im:
+        im = im.convert("RGBA")
+        side = min(im.width, im.height)
+        frame = im.crop((0, 0, side, side))
+        buf = io.BytesIO()
+        frame.save(buf, format="PNG")
+        return buf.getvalue()
+
+
 @app.get("/api/sprite/{species_const}")
 def get_sprite(species_const: str, kind: str = "icon"):
     d = species.sprite_dir(config.repo_path(), species_const)
@@ -55,6 +70,12 @@ def get_sprite(species_const: str, kind: str = "icon"):
     if d is None or not (d / fname).is_file():
         diagnostics.log("DECISION", f"missing_sprite={species_const} kind={kind}")
         raise HTTPException(status_code=404, detail="sprite not found")
+    if kind == "front":
+        try:
+            return Response(content=_first_frame_png(d / fname), media_type="image/png")
+        except OSError as e:
+            diagnostics.log("DECISION", f"front_crop_failed={species_const} err={e}; serving raw")
+            return FileResponse(d / fname)  # fall back to the raw sheet, still visible
     return FileResponse(d / fname)
 
 

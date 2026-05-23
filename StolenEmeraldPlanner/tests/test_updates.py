@@ -56,3 +56,68 @@ def test_roadmap_parse_counts(tmp_path):
 def test_roadmap_missing_file(tmp_path):
     r = roadmap.parse(tmp_path / "nope.md")
     assert r["sections"] == [] and r["raw"] == ""
+
+
+def _write_enc(path, species_list):
+    import json
+
+    mons = [{"min_level": 2, "max_level": 3, "species": s} for s in species_list]
+    rates = [100 // len(mons)] * len(mons)
+    data = {
+        "wild_encounter_groups": [
+            {
+                "label": "g",
+                "for_maps": True,
+                "fields": [{"type": "land_mons", "encounter_rates": rates}],
+                "encounters": [
+                    {
+                        "map": "MAP_TEST",
+                        "base_label": "t",
+                        "land_mons": {"encounter_rate": 20, "mons": mons},
+                    }
+                ],
+            }
+        ]
+    }
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_atlas_serves_updated_data_after_change(tmp_path, monkeypatch):
+    """End-to-end: when repo data changes, /api/status signature changes and
+    /api/atlas serves the NEW data (cache rebuilt, not stale)."""
+    import os
+    import time
+
+    from fastapi.testclient import TestClient
+
+    from backend import cache
+    from backend.server import app
+
+    repo = tmp_path / "repo"
+    (repo / "src" / "data").mkdir(parents=True)
+    (repo / "data" / "maps").mkdir(parents=True)
+    enc = repo / "src" / "data" / "wild_encounters.json"
+    _write_enc(enc, ["SPECIES_PIDGEY"])
+
+    monkeypatch.setenv("SE_PLANNER_REPO", str(repo))
+    monkeypatch.setenv("SE_PLANNER_DATA", str(tmp_path / "appdata"))
+    cache._sig_cache.update(t=0.0, sig="")  # clear signature memo
+
+    client = TestClient(app)
+
+    sig1 = client.get("/api/status").json()["signature"]
+    atlas1 = client.get("/api/atlas").json()
+    assert [m["species"] for m in atlas1["maps"]["MAP_TEST"]["methods"]["land_mons"]["mons"]] == ["SPECIES_PIDGEY"]
+
+    # change the data + force a newer mtime, clear the 2s signature memo
+    time.sleep(0.05)
+    _write_enc(enc, ["SPECIES_PIDGEY", "SPECIES_RATTATA"])
+    os.utime(enc, (time.time() + 10, time.time() + 10))
+    cache._sig_cache.update(t=0.0, sig="")
+
+    sig2 = client.get("/api/status").json()["signature"]
+    assert sig2 != sig1  # the change was detected
+
+    atlas2 = client.get("/api/atlas").json()
+    species = [m["species"] for m in atlas2["maps"]["MAP_TEST"]["methods"]["land_mons"]["mons"]]
+    assert species == ["SPECIES_PIDGEY", "SPECIES_RATTATA"]  # NEW data served, not the stale cache

@@ -44,34 +44,50 @@ window.renderMapView = async function (view, api, setStatus) {
     return t;
   }
 
-  function terrainMons() {
+  const METHOD_LABELS = {
+    land_mons: 'Grass / land',
+    water_mons: 'Surfing / water',
+    rock_smash_mons: 'Rock smash',
+    fishing_mons: 'Fishing',
+  };
+
+  function encMonCard(m) {
+    return el(
+      'div',
+      { cls: 'enc-card' },
+      el('img', { src: '/api/sprite/' + encodeURIComponent(m.species), alt: monName(m.species), loading: 'lazy' }),
+      el(
+        'div',
+        { style: { flex: '1' } },
+        el('div', { cls: 'nm', text: monName(m.species) }),
+        el('div', { cls: 'meta', text: `Lv ${m.min_level}-${m.max_level} · ${m.rarity_pct}%` }),
+        el('div', { cls: 'rb' }, el('i', { style: { width: Math.min(100, m.rarity_pct) + '%' } }))
+      )
+    );
+  }
+
+  function encounterPanel() {
     const d = st.detail;
-    if (!d || !st.on.terrain) return el('div', {});
-    const blocks = [];
-    const pairs = [
-      ['Grass', d.encounters.land_mons],
-      ['Water', d.encounters.water_mons],
-    ];
-    for (const [label, blk] of pairs) {
+    const methods = (d && d.encounters) || {};
+    const order = ['land_mons', 'water_mons', 'rock_smash_mons', 'fishing_mons'];
+    const sections = [];
+    for (const key of order) {
+      const blk = methods[key];
       if (!blk || !blk.mons || !blk.mons.length) continue;
       const seen = new Set();
-      const tiles = [];
+      const cards = [];
       for (const m of blk.mons) {
         if (seen.has(m.species)) continue;
         seen.add(m.species);
-        tiles.push(
-          el(
-            'div',
-            { cls: 'tm' },
-            el('img', { src: '/api/sprite/' + encodeURIComponent(m.species), alt: monName(m.species), loading: 'lazy' }),
-            monName(m.species)
-          )
-        );
+        cards.push(encMonCard(m));
       }
-      blocks.push(el('div', { cls: 'row', style: { color: '#e7f4ef', marginTop: '6px' } }, el('b', { text: label + ' here:' })));
-      blocks.push(el('div', { cls: 'terr-mons' }, ...tiles));
+      sections.push(el('div', { cls: 'enc-head', text: `${METHOD_LABELS[key]} (${seen.size})` }));
+      sections.push(...cards);
     }
-    return el('div', {}, ...blocks);
+    if (!sections.length) {
+      return el('div', { cls: 'enc-panel' }, el('h4', { text: 'Wild Pokémon' }), el('div', { cls: 'meta', text: 'No wild encounters on this map.' }));
+    }
+    return el('div', { cls: 'enc-panel' }, el('h4', { text: 'Wild Pokémon here' }), ...sections);
   }
 
   function buildSide() {
@@ -84,8 +100,8 @@ window.renderMapView = async function (view, api, setStatus) {
       el('button', { text: '+', onclick: () => { st.scale = Math.min(6, st.scale + 1); drawStage(); } })
     );
     const toggles = LAYERS.map((l) => toggleEl(l, l.key === 'terrain' ? cellCount() : (d[l.key] || []).length));
-    mount(terrainPanel, terrainMons());
-    mount(side, zoom, ...toggles, detailBox, terrainPanel);
+    mount(terrainPanel, encounterPanel());
+    mount(side, terrainPanel, zoom, ...toggles, detailBox);
   }
 
   function cellCount() {
@@ -100,6 +116,37 @@ window.renderMapView = async function (view, api, setStatus) {
   const stage = el('div', { cls: 'map-stage' });
   const stageWrap = el('div', { cls: 'map-stage-wrap' }, stage);
   const side = el('div', { cls: 'map-side' });
+
+  function addSpawnCluster(cls, mons, PX) {
+    const d = st.detail;
+    if (!mons.length || !d.terrain) return;
+    // centroid of cells of this terrain class
+    let sx = 0, sy = 0, n = 0;
+    for (let y = 0; y < d.terrain.length; y++) {
+      for (let x = 0; x < d.terrain[y].length; x++) {
+        if (d.terrain[y][x] === cls) { sx += x; sy += y; n++; }
+      }
+    }
+    if (!n) return;
+    const cx = (sx / n + 0.5) * PX;
+    const cy = (sy / n + 0.5) * PX;
+    const seen = [];
+    for (const m of mons) {
+      if (!seen.includes(m.species)) seen.push(m.species);
+      if (seen.length >= 6) break;
+    }
+    const uniqueTotal = new Set(mons.map((m) => m.species)).size;
+    const cluster = el('div', { cls: 'spawn-cluster' + (cls === 'water' ? ' water' : '') });
+    cluster.style.left = cx + 'px';
+    cluster.style.top = cy + 'px';
+    for (const sp of seen) {
+      cluster.appendChild(el('img', { src: '/api/sprite/' + encodeURIComponent(sp), alt: monName(sp), title: monName(sp) }));
+    }
+    if (uniqueTotal > seen.length) {
+      cluster.appendChild(el('span', { cls: 'more', text: '+' + (uniqueTotal - seen.length) }));
+    }
+    stage.appendChild(cluster);
+  }
 
   function drawStage() {
     const d = st.detail;
@@ -132,6 +179,8 @@ window.renderMapView = async function (view, api, setStatus) {
         }
       }
       stage.appendChild(cv);
+      addSpawnCluster('grass', (d.encounters.land_mons || {}).mons || [], PX);
+      addSpawnCluster('water', (d.encounters.water_mons || {}).mons || [], PX);
     }
 
     for (const layer of LAYERS) {
@@ -151,8 +200,6 @@ window.renderMapView = async function (view, api, setStatus) {
   }
 
   function buildSideCounts() {
-    // refresh terrain mon panel + toggle highlight without full rebuild
-    mount(terrainPanel, terrainMons());
     side.querySelectorAll('.layer-toggle').forEach((tg, i) => {
       tg.classList.toggle('off', !st.on[LAYERS[i].key]);
     });

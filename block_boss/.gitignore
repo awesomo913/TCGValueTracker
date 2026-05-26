@@ -12,6 +12,8 @@ pin.hash
 bedrock-server/
 bedrockconnect/
 *.log
+*.pid
+.pytest_cache/
 
 # OS
 .DS_Store

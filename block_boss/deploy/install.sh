@@ -13,7 +13,8 @@ mkdir -p "$HOME_DIR" "$BDS_DIR" "$BC_DIR" "$HOME_DIR/backups" "$HOME_DIR/logs"
 
 # 1. System packages
 sudo apt-get update
-sudo apt-get install -y curl unzip openjdk-17-jre-headless ca-certificates
+# default-jre-headless resolves to the distro's JRE (Java 17 on bookworm, 21 on trixie)
+sudo apt-get install -y curl unzip default-jre-headless ca-certificates
 
 # 2. Box64 (ARM64) — confirm current install steps at https://github.com/ptitSeb/box64
 if ! command -v box64 >/dev/null 2>&1; then
@@ -41,6 +42,11 @@ if grep -q '^allow-list=' "$BDS_DIR/server.properties" 2>/dev/null; then
 else
   echo 'allow-list=true' >> "$BDS_DIR/server.properties"
 fi
+
+# Move the game server off 19132/19133 so BedrockConnect (the Switch DNS helper)
+# can own the default port and redirect consoles here.
+sed -i 's/^server-port=.*/server-port=19134/'   "$BDS_DIR/server.properties"
+sed -i 's/^server-portv6=.*/server-portv6=19135/' "$BDS_DIR/server.properties"
 
 # 4. BedrockConnect — Pugmatt's build (confirm latest jar at github.com/Pugmatt/BedrockConnect)
 if [ ! -f "$BC_DIR/BedrockConnect.jar" ]; then

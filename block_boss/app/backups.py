@@ -36,6 +36,8 @@ def make_backup(
         while not is_save_ready():
             if time.monotonic() > deadline:
                 raise TimeoutError("save query never reported ready")
+            # Prompt Bedrock to report when the files are safe to copy.
+            send_command("save query")
             time.sleep(poll_interval)
         shutil.copytree(worlds_dir, dest)
     finally:

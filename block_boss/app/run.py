@@ -1,4 +1,5 @@
 from __future__ import annotations
+import shlex
 from .config import Config
 from .logging_setup import DiagnosticLogger
 from .server_supervisor import ServerSupervisor
@@ -10,8 +11,14 @@ cfg = Config.load()
 log = DiagnosticLogger("blockboss", cfg.logs_dir)
 log.startup(__version__)
 
+# Bedrock ships its own .so libs and only finds them with LD_LIBRARY_PATH=.
+# Wrap in bash so the env var + working dir are set before box64 execs the binary.
+_bds_launch = (
+    f"cd {shlex.quote(str(cfg.bds_dir))} && "
+    f"LD_LIBRARY_PATH=. exec {shlex.quote(cfg.box64_bin)} ./bedrock_server"
+)
 server = ServerSupervisor(
-    [cfg.box64_bin, str(cfg.bds_executable)],
+    ["bash", "-lc", _bds_launch],
     cwd=cfg.bds_dir,
     on_line=lambda line: log.decision(f"bds: {line}") if "ERROR" in line else None,
 )

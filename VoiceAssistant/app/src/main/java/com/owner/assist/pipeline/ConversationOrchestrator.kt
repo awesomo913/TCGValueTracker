@@ -299,7 +299,10 @@ class ConversationOrchestrator(
 
         relayJob.join()
         ttsJob.join()
-        delay(TAIL_DRAIN_MS)
+        // Wait for the ring buffer to play out before stopping. Fixed 300ms was too short
+        // when the 2s buffer still had audio in it — caused tail sentences to be dropped.
+        val drainMs = player.remainingMs() + 200L
+        if (drainMs > 50) delay(drainMs)
         player.stop()
         gate.closeMic()
     }
@@ -390,7 +393,6 @@ class ConversationOrchestrator(
 
     companion object {
         private const val TAG = "Orchestrator"
-        private const val TAIL_DRAIN_MS = 300L
         private const val RECONNECT_DELAY_MS = 2_000L
         private const val TTS_CONNECT_TIMEOUT_MS = 4_000L
         private const val TTS_MODEL = "aura-2-luna-en"

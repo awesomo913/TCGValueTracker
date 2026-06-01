@@ -6,6 +6,8 @@ import android.media.AudioTrack
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -21,17 +23,29 @@ class AudioPlayer {
 
     @Volatile private var track: AudioTrack? = null
     private val totalBytesWritten = AtomicLong(0L)
-    // Pre-buffer accumulator. We write into the AudioTrack buffer before calling play()
-    // so the hardware never starts on an empty buffer (which causes an immediate underrun
-    // → crackle/dropout at the very start of every response).
     @Volatile private var playbackStarted = false
     private val preBuffer = java.io.ByteArrayOutputStream()
+    private var dumpStream: FileOutputStream? = null
+
+    // Silence trimmer state: Deepgram Aura-2 embeds inter-sentence silence (up to 400ms)
+    // in the raw PCM. We pass through up to MAX_SILENCE_CHUNKS of consecutive silence, then
+    // drop further silent chunks until speech resumes. Eliminates audible "skips" without
+    // cutting natural short pauses.
+    private var consecutiveSilentChunks = 0
 
     fun start() {
         if (track != null) return
         totalBytesWritten.set(0L)
         playbackStarted = false
+        consecutiveSilentChunks = 0
         synchronized(preBuffer) { preBuffer.reset() }
+        try {
+            val f = File("/sdcard/Download/pcm_dump.raw")
+            dumpStream = FileOutputStream(f)
+            Log.i(TAG, "PCM dump → ${f.absolutePath}")
+        } catch (e: Exception) {
+            Log.w(TAG, "PCM dump open failed: ${e.message}")
+        }
         // 2-second ring buffer. After pre-buffering eliminates the initial underrun,
         // this headroom covers variable-latency network delivery between TTS sentences.
         val bufSize = SAMPLE_RATE * PCM_BYTES_PER_FRAME * 2
@@ -61,9 +75,39 @@ class AudioPlayer {
         Log.i(TAG, "AudioTrack ready (not yet playing) state=${t.state} sessionId=${t.audioSessionId} bufSize=$bufSize")
     }
 
+    /** True if the RMS of [pcm] is below SILENCE_RMS_THRESHOLD (int16 scale). */
+    private fun isSilentChunk(pcm: ByteArray): Boolean {
+        var sumSq = 0L
+        var i = 0
+        while (i + 1 < pcm.size) {
+            val s = ((pcm[i + 1].toInt() shl 8) or (pcm[i].toInt() and 0xFF)).toShort().toLong()
+            sumSq += s * s
+            i += 2
+        }
+        val count = pcm.size / 2
+        // RMS in int16 units. Compare to threshold squared to avoid sqrt.
+        return sumSq / count < SILENCE_RMS_SQ_THRESHOLD
+    }
+
     /** Write a PCM chunk on an IO thread. Caller must already be in a coroutine. */
     suspend fun writeAsync(pcm: ByteArray) = withContext(Dispatchers.IO) {
         val t = track ?: return@withContext
+
+        // Silence trimmer: allow up to MAX_SILENCE_CHUNKS consecutive silent chunks through,
+        // then drop until speech resumes. Removes Deepgram's inter-sentence silence (up to 400ms)
+        // that causes audible "skipping" without affecting short natural pauses (≤80ms).
+        if (isSilentChunk(pcm)) {
+            consecutiveSilentChunks++
+            if (consecutiveSilentChunks > MAX_SILENCE_CHUNKS) {
+                Log.d(TAG, "silence trimmed (chunk $consecutiveSilentChunks)")
+                return@withContext
+            }
+        } else {
+            if (consecutiveSilentChunks > MAX_SILENCE_CHUNKS) {
+                Log.d(TAG, "speech resumed after ${consecutiveSilentChunks} silent chunks (${consecutiveSilentChunks * 40}ms trimmed)")
+            }
+            consecutiveSilentChunks = 0
+        }
 
         if (!playbackStarted) {
             // Accumulate until we have PRE_BUFFER_BYTES, then flush and start playing.
@@ -78,9 +122,11 @@ class AudioPlayer {
             val n = t.write(accumulated, 0, accumulated.size, AudioTrack.WRITE_BLOCKING)
             if (n > 0) {
                 totalBytesWritten.addAndGet(n.toLong())
+                dumpStream?.write(accumulated, 0, n)
                 t.play()
                 playbackStarted = true
-                Log.i(TAG, "Pre-buffer full (${accumulated.size}B) — playback started. playState=${t.playState}")
+                val bufMs = accumulated.size * 1000 / PCM_BYTES_PER_FRAME / SAMPLE_RATE
+                Log.i(TAG, "Pre-buffer full (${accumulated.size}B = ${bufMs}ms) — playback started. playState=${t.playState}")
             }
             return@withContext
         }
@@ -91,6 +137,7 @@ class AudioPlayer {
             if (n < pcm.size) Log.w(TAG, "AudioTrack.write short: $n/${pcm.size} B")
             totalBytesWritten.addAndGet(n.toLong())
             Log.d(TAG, "chunk done: wrote $n/${pcm.size} B playHead=${t.playbackHeadPosition}")
+            dumpStream?.write(pcm, 0, n)
         }
     }
 
@@ -125,14 +172,24 @@ class AudioPlayer {
         totalBytesWritten.set(0L)
         playbackStarted = false
         synchronized(preBuffer) { preBuffer.reset() }
+        try { dumpStream?.close() } catch (_: Exception) {}
+        dumpStream = null
     }
 
     companion object {
         private const val TAG = "AudioPlayer"
         const val SAMPLE_RATE = 16_000
         private const val PCM_BYTES_PER_FRAME = 2      // mono PCM_16BIT: 1 channel × 2 bytes
-        // 500ms of audio to buffer before starting playback. Chosen to cover the typical
-        // TTS first-byte latency (~640ms) so the hardware never starts on an empty buffer.
-        private const val PRE_BUFFER_BYTES = SAMPLE_RATE * PCM_BYTES_PER_FRAME / 2  // 16000 B
+        // 1s of audio to buffer before starting playback. Deepgram streams in ~680ms synthesis
+        // batches even for a single speak() call — 500ms (old value) drained before the next
+        // batch arrived (logcat: restartIfDisabled at t+526ms). 1s > 680ms batch gap = no underrun.
+        private const val PRE_BUFFER_BYTES = SAMPLE_RATE * PCM_BYTES_PER_FRAME  // 32000 B = 1s
+        // Silence trimmer constants. Each chunk = 1280 bytes = 640 samples = 40ms at 16kHz.
+        // Allow 1 consecutive silent chunk (40ms) through, drop the rest until speech resumes.
+        private const val MAX_SILENCE_CHUNKS = 1
+        // RMS threshold in int16 units squared (avoids sqrt). Active speech RMS ≈ 1308 int16.
+        // 80^2 = 6400 → ~6% of speech level. Catches Deepgram's low-amplitude background tone
+        // between sentences that the old per-sample peak check missed.
+        private const val SILENCE_RMS_SQ_THRESHOLD = 6400L  // RMS ≈ 80 / 32768 ≈ 0.0024 float
     }
 }

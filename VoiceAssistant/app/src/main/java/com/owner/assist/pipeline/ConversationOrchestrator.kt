@@ -17,11 +17,13 @@ import com.owner.assist.service.AssistantStateBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.coroutineContext
 import kotlin.math.log10
 import kotlin.math.sqrt
@@ -174,15 +176,22 @@ class ConversationOrchestrator(
         for (heardText in utteranceCh) {
             if (!coroutineContext.isActive) break
 
-            // Fast triage — bail early if it's not worth responding to
-            val respond = TriageClient.shouldRespond(heardText, keys.groqKey)
-            if (!respond) {
-                Log.d(TAG, "TRIAGE SKIP: ${heardText.take(40)}")
-                AssistantStateBus.addEvent("Skip")
-                continue
+            val respond = if (isTechnicalFastTrack(heardText)) {
+                Log.i(TAG, "FAST-TRACK: ${heardText.take(60)}")
+                AssistantStateBus.addEvent("Fast: respond")
+                true
+            } else {
+                val r = TriageClient.shouldRespond(heardText, keys.groqKey)
+                if (!r) {
+                    Log.d(TAG, "TRIAGE SKIP: ${heardText.take(40)}")
+                    AssistantStateBus.addEvent("Skip")
+                } else {
+                    Log.i(TAG, "TRIAGE RESPOND: ${heardText.take(60)}")
+                    AssistantStateBus.addEvent("Responding...")
+                }
+                r
             }
-            Log.i(TAG, "TRIAGE RESPOND: ${heardText.take(60)}")
-            AssistantStateBus.addEvent("Responding...")
+            if (!respond) continue
 
             AssistantStateBus.set(AssistantState.THINKING)
             val t0 = SystemClock.elapsedRealtime()
@@ -202,17 +211,20 @@ class ConversationOrchestrator(
         val provider = resolveProvider()
         val tts = DeepgramTtsClient(keys.deepgramKey)
         val splitter = SentenceSplitter()
-        var ttsSession: DeepgramTtsClient.Session? = null
+        val sessionReady = CompletableDeferred<DeepgramTtsClient.Session>()
+        val sentenceCh = Channel<String>(Channel.BUFFERED)
         var firstAudio = true
         var firstToken = true
-        var llmDone = false
 
         gate.openMic()
         AssistantStateBus.set(AssistantState.SPEAKING)
         player.start()
 
+        // Opens TTS WS and writes incoming PCM to AudioTrack.
         val ttsJob = scope.launch {
-            tts.open(model = TTS_MODEL) { session -> ttsSession = session }.collect { ev ->
+            tts.open(model = TTS_MODEL) { session ->
+                sessionReady.complete(session)
+            }.collect { ev ->
                 when (ev) {
                     is DeepgramTtsClient.Event.Audio -> {
                         if (firstAudio) {
@@ -221,37 +233,57 @@ class ConversationOrchestrator(
                         }
                         player.writeAsync(ev.pcm)
                     }
-                    DeepgramTtsClient.Event.Flushed -> Unit
-                    is DeepgramTtsClient.Event.Error -> Log.w(TAG, "TTS error: ${ev.cause.message}")
-                    DeepgramTtsClient.Event.Closed -> Unit
+                    is DeepgramTtsClient.Event.Error -> {
+                        Log.w(TAG, "TTS error: ${ev.cause.message}")
+                        sessionReady.completeExceptionally(ev.cause)
+                    }
+                    else -> Unit
                 }
             }
         }
 
+        // Awaits TTS session, then drains the sentence channel.
+        // Sentences produced by LLM before TTS opens are buffered — no latency added.
+        val relayJob = scope.launch {
+            val session = try {
+                withTimeout(TTS_CONNECT_TIMEOUT_MS) { sessionReady.await() }
+            } catch (e: Exception) {
+                Log.w(TAG, "TTS never opened: ${e.message}")
+                return@launch
+            }
+            Log.i(TAG, "TTS ready — draining sentences (${SystemClock.elapsedRealtime() - t0}ms)")
+            for (sentence in sentenceCh) {
+                session.speak(sentence)
+            }
+            session.runCatching { flush() }
+            delay(150)
+            session.runCatching { close() }
+        }
+
+        // LLM starts IMMEDIATELY — sentences stream into sentenceCh without waiting for TTS.
         try {
             provider.stream(SYSTEM_PROMPT, heardText).collect { delta ->
                 if (firstToken) {
                     Log.i(TAG, "Latency llm_ttft=${SystemClock.elapsedRealtime() - t0}ms")
                     firstToken = false
                 }
-                splitter.feed(delta).forEach { sentence -> ttsSession?.speak(sentence) }
+                splitter.feed(delta).forEach { sentence -> sentenceCh.send(sentence) }
             }
             val tail = splitter.drain()
-            if (tail.isNotEmpty()) ttsSession?.speak(tail)
-            llmDone = true
+            if (tail.isNotEmpty()) sentenceCh.send(tail)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Throwable) {
             Log.w(TAG, "LLM stream error: ${e.message}")
         } finally {
-            if (llmDone) ttsSession?.runCatching { flush() }
-            delay(150)
-            ttsSession?.runCatching { close() }
-            ttsJob.join()
-            delay(TAIL_DRAIN_MS)
-            player.stop()
-            gate.closeMic()
+            sentenceCh.close()  // relay's for-loop exits → flushes TTS → ttsJob drains remaining PCM
         }
+
+        relayJob.join()
+        ttsJob.join()
+        delay(TAIL_DRAIN_MS)
+        player.stop()
+        gate.closeMic()
     }
 
     // ──────────────────────────────────────────────────────────
@@ -289,6 +321,26 @@ class ConversationOrchestrator(
         return rollingRmsDb * 0.8f + db * 0.2f
     }
 
+    /**
+     * True for any utterance that is clearly a question or technical request.
+     * These skip the triage API call entirely — saves ~150-300ms on every technical turn.
+     */
+    private fun isTechnicalFastTrack(text: String): Boolean {
+        val words = text.trim().split("\\s+".toRegex())
+        if (words.size < 4) return false
+        val lower = text.lowercase()
+        // Any genuine question mark = likely worth answering
+        if (lower.contains('?')) return true
+        // Open-ended requests / interview patterns without question marks
+        val starters = listOf(
+            "explain ", "describe ", "tell me ", "walk me through ",
+            "how do you ", "what is ", "what are ", "what does ",
+            "why does ", "why is ", "why are ",
+            "define ", "compare ", "difference between ",
+        )
+        return starters.any { lower.startsWith(it) }
+    }
+
     private fun onCleanup() {
         utteranceCh.close()
         player.stop()
@@ -300,10 +352,13 @@ class ConversationOrchestrator(
         private const val TAG = "Orchestrator"
         private const val TAIL_DRAIN_MS = 300L
         private const val RECONNECT_DELAY_MS = 2_000L
+        private const val TTS_CONNECT_TIMEOUT_MS = 4_000L
         private const val TTS_MODEL = "aura-2-luna-en"
         private const val SYSTEM_PROMPT =
-            "You are a silent earpiece assistant. Someone near the user just said this. " +
-            "Whisper one short sentence of useful context, fact, or suggestion to the user. " +
-            "No preamble. No 'I think'. No markdown. Plain speech only."
+            "You are a real-time earpiece assistant for someone in an interview, maintenance job, or technical setting. " +
+            "Someone nearby just said this. Give the user a concise, accurate answer they can immediately use or repeat. " +
+            "Technical, electrical, or mechanical questions: answer precisely in 2-3 sentences — accuracy matters more than brevity. " +
+            "Non-technical or conversational: 1 sentence of useful context or suggestion. " +
+            "No preamble. No 'I think'. No 'Great question'. No markdown. Plain spoken English only."
     }
 }

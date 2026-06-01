@@ -5,7 +5,6 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /**
@@ -23,12 +22,9 @@ class AudioPlayer {
 
     fun start() {
         if (track != null) return
-        val minBuf = AudioTrack.getMinBufferSize(
-            SAMPLE_RATE,
-            AudioFormat.CHANNEL_OUT_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-        )
-        val bufSize = (minBuf * 2).coerceAtLeast(4096)
+        // 2-second ring buffer. Absorbs the ~400ms gap between TTS sentences so the
+        // AudioTrack never hits bottom mid-response (underrun → BT crackle/pop).
+        val bufSize = SAMPLE_RATE * PCM_BYTES_PER_SAMPLE * 2
         val t = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -57,16 +53,9 @@ class AudioPlayer {
     /** Write a PCM chunk on an IO thread. Caller must already be in a coroutine. */
     suspend fun writeAsync(pcm: ByteArray) = withContext(Dispatchers.IO) {
         val t = track ?: return@withContext
-        var offset = 0
-        while (offset < pcm.size) {
-            val n = t.write(pcm, offset, pcm.size - offset, AudioTrack.WRITE_NON_BLOCKING)
-            when {
-                n < 0 -> { Log.w(TAG, "AudioTrack.write error $n"); break }
-                n == 0 -> delay(5)   // buffer full — yield briefly rather than spin
-                else -> offset += n
-            }
-        }
-        Log.d(TAG, "chunk done: wrote $offset/${pcm.size} B playHead=${t.playbackHeadPosition}")
+        val n = t.write(pcm, 0, pcm.size, AudioTrack.WRITE_BLOCKING)
+        if (n < 0) Log.w(TAG, "AudioTrack.write error $n")
+        else Log.d(TAG, "chunk done: wrote $n/${pcm.size} B playHead=${t.playbackHeadPosition}")
     }
 
     /** Returns the playback head position in frames — used to gate barge-in. */
@@ -88,5 +77,6 @@ class AudioPlayer {
     companion object {
         private const val TAG = "AudioPlayer"
         const val SAMPLE_RATE = 16_000
+        private const val PCM_BYTES_PER_SAMPLE = 2  // 16-bit = 2 bytes
     }
 }

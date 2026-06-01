@@ -28,16 +28,17 @@ class AudioPlayer {
     private var dumpStream: FileOutputStream? = null
 
     // Silence trimmer state: Deepgram Aura-2 embeds inter-sentence silence (up to 400ms)
-    // in the raw PCM. We pass through up to MAX_SILENCE_CHUNKS of consecutive silence, then
-    // drop further silent chunks until speech resumes. Eliminates audible "skips" without
-    // cutting natural short pauses.
+    // in the raw PCM. Drop ALL silent chunks. Apply a 5ms fade-in on the first speech chunk
+    // after a silence run to prevent click artifacts at the abrupt 0→amplitude transition.
     private var consecutiveSilentChunks = 0
+    private var needsFadeIn = false
 
     fun start() {
         if (track != null) return
         totalBytesWritten.set(0L)
         playbackStarted = false
         consecutiveSilentChunks = 0
+        needsFadeIn = false
         synchronized(preBuffer) { preBuffer.reset() }
         try {
             val f = File("/sdcard/Download/pcm_dump.raw")
@@ -93,27 +94,35 @@ class AudioPlayer {
     suspend fun writeAsync(pcm: ByteArray) = withContext(Dispatchers.IO) {
         val t = track ?: return@withContext
 
-        // Silence trimmer: allow up to MAX_SILENCE_CHUNKS consecutive silent chunks through,
-        // then drop until speech resumes. Removes Deepgram's inter-sentence silence (up to 400ms)
-        // that causes audible "skipping" without affecting short natural pauses (≤80ms).
+        // Silence trimmer: drop ALL silent chunks (MAX_SILENCE_CHUNKS=0).
+        // Deepgram embeds up to 400ms inter-sentence silence; even a single 40ms silent chunk
+        // is audible as a micro-stutter when speech resumes at full amplitude.
+        // Apply 5ms linear fade-in on first speech chunk after silence to prevent click artifact.
         if (isSilentChunk(pcm)) {
             consecutiveSilentChunks++
-            if (consecutiveSilentChunks > MAX_SILENCE_CHUNKS) {
-                Log.d(TAG, "silence trimmed (chunk $consecutiveSilentChunks)")
-                return@withContext
-            }
+            Log.d(TAG, "silence trimmed (chunk $consecutiveSilentChunks)")
+            needsFadeIn = true
+            return@withContext
         } else {
-            if (consecutiveSilentChunks > MAX_SILENCE_CHUNKS) {
-                Log.d(TAG, "speech resumed after ${consecutiveSilentChunks} silent chunks (${consecutiveSilentChunks * 40}ms trimmed)")
+            if (consecutiveSilentChunks > 0) {
+                Log.d(TAG, "speech resumed after $consecutiveSilentChunks silent chunks (${consecutiveSilentChunks * 40}ms trimmed)")
             }
             consecutiveSilentChunks = 0
+        }
+
+        // Fade-in: apply 5ms (80 samples) linear ramp to first chunk after silence run.
+        val chunkToWrite = if (needsFadeIn) {
+            needsFadeIn = false
+            applyFadeIn(pcm)
+        } else {
+            pcm
         }
 
         if (!playbackStarted) {
             // Accumulate until we have PRE_BUFFER_BYTES, then flush and start playing.
             val accumulated: ByteArray
             synchronized(preBuffer) {
-                preBuffer.write(pcm)
+                preBuffer.write(chunkToWrite)
                 if (preBuffer.size() < PRE_BUFFER_BYTES) return@withContext
                 accumulated = preBuffer.toByteArray()
                 preBuffer.reset()
@@ -131,14 +140,31 @@ class AudioPlayer {
             return@withContext
         }
 
-        val n = t.write(pcm, 0, pcm.size, AudioTrack.WRITE_BLOCKING)
+        val n = t.write(chunkToWrite, 0, chunkToWrite.size, AudioTrack.WRITE_BLOCKING)
         if (n < 0) Log.w(TAG, "AudioTrack.write error $n")
         else {
-            if (n < pcm.size) Log.w(TAG, "AudioTrack.write short: $n/${pcm.size} B")
+            if (n < chunkToWrite.size) Log.w(TAG, "AudioTrack.write short: $n/${chunkToWrite.size} B")
             totalBytesWritten.addAndGet(n.toLong())
-            Log.d(TAG, "chunk done: wrote $n/${pcm.size} B playHead=${t.playbackHeadPosition}")
-            dumpStream?.write(pcm, 0, n)
+            Log.d(TAG, "chunk done: wrote $n/${chunkToWrite.size} B playHead=${t.playbackHeadPosition}")
+            dumpStream?.write(chunkToWrite, 0, n)
         }
+    }
+
+    /** Apply a 5ms (80 samples) linear fade-in to avoid click when resuming after silence. */
+    private fun applyFadeIn(pcm: ByteArray): ByteArray {
+        val result = pcm.copyOf()
+        val fadeSamples = FADE_IN_SAMPLES
+        var i = 0
+        var sampleIdx = 0
+        while (i + 1 < result.size && sampleIdx < fadeSamples) {
+            val sample = ((result[i + 1].toInt() shl 8) or (result[i].toInt() and 0xFF)).toShort()
+            val faded = (sample * sampleIdx / fadeSamples).toShort()
+            result[i] = (faded.toInt() and 0xFF).toByte()
+            result[i + 1] = (faded.toInt() shr 8).toByte()
+            i += 2
+            sampleIdx++
+        }
+        return result
     }
 
     /** Returns the playback head position in frames — used to gate barge-in. */
@@ -171,6 +197,8 @@ class AudioPlayer {
         track = null
         totalBytesWritten.set(0L)
         playbackStarted = false
+        consecutiveSilentChunks = 0
+        needsFadeIn = false
         synchronized(preBuffer) { preBuffer.reset() }
         try { dumpStream?.close() } catch (_: Exception) {}
         dumpStream = null
@@ -184,12 +212,12 @@ class AudioPlayer {
         // batches even for a single speak() call — 500ms (old value) drained before the next
         // batch arrived (logcat: restartIfDisabled at t+526ms). 1s > 680ms batch gap = no underrun.
         private const val PRE_BUFFER_BYTES = SAMPLE_RATE * PCM_BYTES_PER_FRAME  // 32000 B = 1s
-        // Silence trimmer constants. Each chunk = 1280 bytes = 640 samples = 40ms at 16kHz.
-        // Allow 1 consecutive silent chunk (40ms) through, drop the rest until speech resumes.
-        private const val MAX_SILENCE_CHUNKS = 1
-        // RMS threshold in int16 units squared (avoids sqrt). Active speech RMS ≈ 1308 int16.
-        // 80^2 = 6400 → ~6% of speech level. Catches Deepgram's low-amplitude background tone
-        // between sentences that the old per-sample peak check missed.
-        private const val SILENCE_RMS_SQ_THRESHOLD = 6400L  // RMS ≈ 80 / 32768 ≈ 0.0024 float
+        // Silence trimmer: drop ALL silent chunks (including the first one).
+        // Even a single 40ms silent chunk creates an audible micro-stutter at full amplitude resume.
+        private const val MAX_SILENCE_CHUNKS = 0
+        // RMS threshold in int16 units squared. 80² = 6400 → ~6% of speech RMS (≈1308 int16).
+        private const val SILENCE_RMS_SQ_THRESHOLD = 6400L
+        // 5ms fade-in after silence run: 80 samples at 16kHz prevents click at 0→amplitude jump.
+        private const val FADE_IN_SAMPLES = 80
     }
 }

@@ -94,14 +94,20 @@ class AudioPlayer {
     suspend fun writeAsync(pcm: ByteArray) = withContext(Dispatchers.IO) {
         val t = track ?: return@withContext
 
-        // Silence trimmer: drop ALL silent chunks (MAX_SILENCE_CHUNKS=0).
-        // Deepgram embeds up to 400ms inter-sentence silence; even a single 40ms silent chunk
-        // is audible as a micro-stutter when speech resumes at full amplitude.
-        // Apply 5ms linear fade-in on first speech chunk after silence to prevent click artifact.
+        // Silence trimmer: replace Deepgram's noisy inter-sentence silence with zeroes.
+        // Skipping silence entirely drains the AudioTrack buffer faster than Deepgram refills it
+        // → underrun mid-response → glitch that persists to end. Writing zeroes keeps the buffer
+        // full while replacing the audible pseudo-silence with clean silence.
+        // During pre-buffer phase we skip silence so the 1s pre-buffer fills with speech only.
         if (isSilentChunk(pcm)) {
             consecutiveSilentChunks++
-            Log.d(TAG, "silence trimmed (chunk $consecutiveSilentChunks)")
             needsFadeIn = true
+            if (playbackStarted) {
+                val zeros = ByteArray(pcm.size)
+                val n = t.write(zeros, 0, zeros.size, AudioTrack.WRITE_BLOCKING)
+                if (n > 0) totalBytesWritten.addAndGet(n.toLong())
+                Log.d(TAG, "silence→zeros (chunk $consecutiveSilentChunks)")
+            }
             return@withContext
         } else {
             if (consecutiveSilentChunks > 0) {

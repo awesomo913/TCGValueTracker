@@ -258,8 +258,11 @@ class ConversationOrchestrator(
             }
         }
 
-        // Awaits TTS session, then drains the sentence channel.
-        // Sentences produced by LLM before TTS opens are buffered — no latency added.
+        // Awaits TTS session, collects ALL LLM sentences, then sends as ONE speak() call.
+        // Deepgram synthesizes each separate speak() call as an independent task with ~680ms
+        // inter-task overhead. Sending all text as a single string eliminates those gaps and
+        // produces one continuous audio stream. Groq is fast enough (~200 tok/s) that the
+        // extra wait for full LLM output adds <500ms to perceived latency.
         val relayJob = scope.launch {
             val session = try {
                 withTimeout(TTS_CONNECT_TIMEOUT_MS) { sessionReady.await() }
@@ -267,9 +270,15 @@ class ConversationOrchestrator(
                 Log.w(TAG, "TTS never opened: ${e.message}")
                 return@launch
             }
-            Log.i(TAG, "TTS ready — draining sentences (${SystemClock.elapsedRealtime() - t0}ms)")
+            // Drain all sentences into one string
+            val fullText = StringBuilder()
             for (sentence in sentenceCh) {
-                session.speak(sentence)
+                fullText.append(sentence).append(' ')
+            }
+            val text = fullText.toString().trim()
+            Log.i(TAG, "TTS ready — sending ${text.length} chars as single speak() (${SystemClock.elapsedRealtime() - t0}ms)")
+            if (text.isNotEmpty()) {
+                session.speak(text)
             }
             session.runCatching { flush() }
                 .onFailure { Log.w(TAG, "TTS flush error: ${it.message}") }

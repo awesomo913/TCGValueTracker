@@ -21,12 +21,19 @@ class AudioPlayer {
 
     @Volatile private var track: AudioTrack? = null
     private val totalBytesWritten = AtomicLong(0L)
+    // Pre-buffer accumulator. We write into the AudioTrack buffer before calling play()
+    // so the hardware never starts on an empty buffer (which causes an immediate underrun
+    // → crackle/dropout at the very start of every response).
+    @Volatile private var playbackStarted = false
+    private val preBuffer = java.io.ByteArrayOutputStream()
 
     fun start() {
         if (track != null) return
         totalBytesWritten.set(0L)
-        // 2-second ring buffer. Absorbs the ~400ms gap between TTS sentences so the
-        // AudioTrack never hits bottom mid-response (underrun → BT crackle/pop).
+        playbackStarted = false
+        synchronized(preBuffer) { preBuffer.reset() }
+        // 2-second ring buffer. After pre-buffering eliminates the initial underrun,
+        // this headroom covers variable-latency network delivery between TTS sentences.
         val bufSize = SAMPLE_RATE * PCM_BYTES_PER_FRAME * 2
         val t = AudioTrack.Builder()
             .setAudioAttributes(
@@ -48,18 +55,40 @@ class AudioPlayer {
             .setBufferSizeInBytes(bufSize)
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
-        t.play()
+        // Do NOT call t.play() here. Playback deferred to first writeAsync() call so
+        // the buffer has data before the hardware starts consuming it.
         track = t
-        Log.i(TAG, "AudioTrack started state=${t.state} playState=${t.playState} sessionId=${t.audioSessionId} bufSize=$bufSize")
+        Log.i(TAG, "AudioTrack ready (not yet playing) state=${t.state} sessionId=${t.audioSessionId} bufSize=$bufSize")
     }
 
     /** Write a PCM chunk on an IO thread. Caller must already be in a coroutine. */
     suspend fun writeAsync(pcm: ByteArray) = withContext(Dispatchers.IO) {
         val t = track ?: return@withContext
+
+        if (!playbackStarted) {
+            // Accumulate until we have PRE_BUFFER_BYTES, then flush and start playing.
+            val accumulated: ByteArray
+            synchronized(preBuffer) {
+                preBuffer.write(pcm)
+                if (preBuffer.size() < PRE_BUFFER_BYTES) return@withContext
+                accumulated = preBuffer.toByteArray()
+                preBuffer.reset()
+            }
+            // Write accumulated data into the (still-paused) AudioTrack buffer, then play.
+            val n = t.write(accumulated, 0, accumulated.size, AudioTrack.WRITE_BLOCKING)
+            if (n > 0) {
+                totalBytesWritten.addAndGet(n.toLong())
+                t.play()
+                playbackStarted = true
+                Log.i(TAG, "Pre-buffer full (${accumulated.size}B) — playback started. playState=${t.playState}")
+            }
+            return@withContext
+        }
+
         val n = t.write(pcm, 0, pcm.size, AudioTrack.WRITE_BLOCKING)
         if (n < 0) Log.w(TAG, "AudioTrack.write error $n")
         else {
-            if (n < pcm.size) Log.w(TAG, "AudioTrack.write short: $n/${pcm.size} B (WRITE_BLOCKING shouldn't partial-write)")
+            if (n < pcm.size) Log.w(TAG, "AudioTrack.write short: $n/${pcm.size} B")
             totalBytesWritten.addAndGet(n.toLong())
             Log.d(TAG, "chunk done: wrote $n/${pcm.size} B playHead=${t.playbackHeadPosition}")
         }
@@ -85,9 +114,8 @@ class AudioPlayer {
         track?.let {
             try {
                 // stop() in streaming mode drains remaining buffer before halting.
-                // Do NOT call flush() here — flush() discards buffered audio immediately,
-                // cutting off the tail of the response.
-                it.stop()
+                // Do NOT call flush() — flush() discards buffered audio immediately.
+                if (playbackStarted) it.stop() else it.flush()
                 it.release()
             } catch (e: IllegalStateException) {
                 Log.w(TAG, "stop: ${e.message}")
@@ -95,11 +123,16 @@ class AudioPlayer {
         }
         track = null
         totalBytesWritten.set(0L)
+        playbackStarted = false
+        synchronized(preBuffer) { preBuffer.reset() }
     }
 
     companion object {
         private const val TAG = "AudioPlayer"
         const val SAMPLE_RATE = 16_000
-        private const val PCM_BYTES_PER_FRAME = 2  // mono PCM_16BIT: 1 channel × 2 bytes = 2 bytes/frame
+        private const val PCM_BYTES_PER_FRAME = 2      // mono PCM_16BIT: 1 channel × 2 bytes
+        // 500ms of audio to buffer before starting playback. Chosen to cover the typical
+        // TTS first-byte latency (~640ms) so the hardware never starts on an empty buffer.
+        private const val PRE_BUFFER_BYTES = SAMPLE_RATE * PCM_BYTES_PER_FRAME / 2  // 16000 B
     }
 }

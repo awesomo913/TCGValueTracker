@@ -1,0 +1,179 @@
+package com.owner.assist.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import com.owner.assist.data.LlmChoice
+import com.owner.assist.data.OemAutostart
+import com.owner.assist.data.SecureKeyStore
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(onBack: () -> Unit) {
+    val ctx = LocalContext.current
+    val store = remember { SecureKeyStore(ctx) }
+
+    var deepgram by remember { mutableStateOf(store.deepgramKey) }
+    var groq by remember { mutableStateOf(store.groqKey) }
+    var deepseek by remember { mutableStateOf(store.deepseekKey) }
+    var provider by remember { mutableStateOf(store.llmProvider) }
+    var wakeWord by remember { mutableStateOf(store.wakeWordEnabled) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text("Settings") },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+
+            if (!store.isAvailable) {
+                Text(
+                    "Secure storage unavailable — keystore may be corrupted. Reinstall the app.",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            SectionLabel("API keys")
+            SecretField("Deepgram (STT + TTS)", deepgram) { deepgram = it }
+            SecretField("Groq", groq) { groq = it }
+            SecretField("DeepSeek (fallback)", deepseek) { deepseek = it }
+
+            SectionLabel("LLM provider")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LlmChoice.entries.forEach { choice ->
+                    FilterChip(
+                        selected = provider == choice,
+                        onClick = { provider = choice },
+                        label = { Text(choice.display) },
+                    )
+                }
+            }
+
+            SectionLabel("Wake word (v2)")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Require 'Hey J' before listening")
+                Switch(checked = wakeWord, onCheckedChange = { wakeWord = it })
+            }
+            Text(
+                "Off = always-listening (~\$0.75/hr active). On = on-device wake word, near-zero idle cost.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            SectionLabel("Background reliability")
+            Text(
+                "Android will kill long-running background services unless you exempt this app.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            val batteryOk = !OemAutostart.isBatteryOptimized(ctx)
+            Text(
+                "Battery optimization: " + if (batteryOk) "allowed" else "RESTRICTED",
+                color = if (batteryOk) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.error,
+            )
+            OutlinedButton(
+                onClick = { OemAutostart.openBatteryOptimizationSettings(ctx) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Open battery exemption") }
+
+            OemAutostart.oemHint()?.let { hint ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(hint, style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(
+                    onClick = { OemAutostart.openOemAutostartSettings(ctx) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Open autostart settings") }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    store.deepgramKey = deepgram.trim()
+                    store.groqKey = groq.trim()
+                    store.deepseekKey = deepseek.trim()
+                    store.llmProvider = provider
+                    store.wakeWordEnabled = wakeWord
+                    onBack()
+                },
+                enabled = store.isAvailable,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Save") }
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(text = text, style = MaterialTheme.typography.titleMedium)
+}
+
+@Composable
+private fun SecretField(
+    label: String,
+    value: String,
+    onChange: (String) -> Unit,
+) {
+    var visible by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text(label) },
+        singleLine = true,
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = { visible = !visible }) {
+                Icon(
+                    if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                    contentDescription = if (visible) "Hide" else "Show",
+                )
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}

@@ -17,6 +17,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 /**
  * Foreground service that owns the audio pipeline + mic + BT routing.
@@ -44,6 +45,16 @@ class AssistantService : Service() {
             }
             ACTION_CALIBRATE -> {
                 orchestrator?.calibrateSelfNow()
+                return START_NOT_STICKY
+            }
+            ACTION_CALIBRATE_WINDOW -> {
+                val orch = orchestrator ?: return START_NOT_STICKY
+                val s = scope
+                if (s == null) {
+                    Log.w(TAG, "CALIBRATE_WINDOW ignored — scope is null (service not running)")
+                } else {
+                    s.launch { orch.startCalibrationWindow(3_000L) }
+                }
                 return START_NOT_STICKY
             }
             ACTION_START, null -> startUp()
@@ -141,6 +152,7 @@ class AssistantService : Service() {
         const val ACTION_START = "com.owner.assist.action.START"
         const val ACTION_STOP = "com.owner.assist.action.STOP"
         const val ACTION_CALIBRATE = "com.owner.assist.action.CALIBRATE"
+        const val ACTION_CALIBRATE_WINDOW = "com.owner.assist.action.CALIBRATE_WINDOW"
 
         fun startIntent(ctx: android.content.Context): Intent =
             Intent(ctx, AssistantService::class.java).setAction(ACTION_START)
@@ -150,5 +162,8 @@ class AssistantService : Service() {
 
         fun calibrateIntent(ctx: android.content.Context): Intent =
             Intent(ctx, AssistantService::class.java).setAction(ACTION_CALIBRATE)
+
+        fun calibrateWindowIntent(ctx: android.content.Context): Intent =
+            Intent(ctx, AssistantService::class.java).setAction(ACTION_CALIBRATE_WINDOW)
     }
 }

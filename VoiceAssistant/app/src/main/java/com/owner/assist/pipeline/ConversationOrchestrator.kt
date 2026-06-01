@@ -87,9 +87,25 @@ class ConversationOrchestrator(
         onCleanup()
     }
 
-    /** Snapshot current speaker + volume as SELF. Call after user speaks for ~3s. */
+    /** Single-shot calibration — snapshot of current speaker + volume. */
     fun calibrateSelfNow() {
         speakerFilter.calibrateSelf(lastSpeakerId, rollingRmsDb)
+    }
+
+    /**
+     * Multi-sample calibration window. Feeds ~20 samples over [durationMs] (default 3 s)
+     * then commits the averaged profile. Suspend — call from a coroutine.
+     * Results are more reliable than the single-shot [calibrateSelfNow].
+     */
+    suspend fun startCalibrationWindow(durationMs: Long = 3_000L) {
+        speakerFilter.beginCalibration()
+        val endTime = SystemClock.elapsedRealtime() + durationMs
+        while (SystemClock.elapsedRealtime() < endTime) {
+            speakerFilter.addCalibrationSample(lastSpeakerId, rollingRmsDb)
+            delay(150L)
+        }
+        val count = speakerFilter.commitCalibration()
+        Log.i(TAG, "Calibration window done: $count samples")
     }
 
     // ──────────────────────────────────────────────────────────
@@ -256,13 +272,15 @@ class ConversationOrchestrator(
                 session.speak(sentence)
             }
             session.runCatching { flush() }
+                .onFailure { Log.w(TAG, "TTS flush error: ${it.message}") }
             delay(150)
             session.runCatching { close() }
+                .onFailure { Log.w(TAG, "TTS close error: ${it.message}") }
         }
 
         // LLM starts IMMEDIATELY — sentences stream into sentenceCh without waiting for TTS.
         try {
-            provider.stream(SYSTEM_PROMPT, heardText).collect { delta ->
+            provider.stream(buildSystemPrompt(heardText), heardText).collect { delta ->
                 if (firstToken) {
                     Log.i(TAG, "Latency llm_ttft=${SystemClock.elapsedRealtime() - t0}ms")
                     firstToken = false
@@ -329,16 +347,38 @@ class ConversationOrchestrator(
         val words = text.trim().split("\\s+".toRegex())
         if (words.size < 4) return false
         val lower = text.lowercase()
-        // Any genuine question mark = likely worth answering
         if (lower.contains('?')) return true
-        // Open-ended requests / interview patterns without question marks
         val starters = listOf(
             "explain ", "describe ", "tell me ", "walk me through ",
             "how do you ", "what is ", "what are ", "what does ",
             "why does ", "why is ", "why are ",
             "define ", "compare ", "difference between ",
         )
-        return starters.any { lower.startsWith(it) }
+        if (starters.any { lower.startsWith(it) }) return true
+        // Vehicle/forklift domain terms always route as technical regardless of phrasing
+        return VEHICLE_DOMAIN_WORDS.any { lower.contains(it) }
+    }
+
+    /**
+     * Builds a domain-specialized system prompt. Injects engine-cycle ordering context
+     * when the heard text contains engine/stroke keywords.
+     */
+    private fun buildSystemPrompt(heardText: String): String {
+        val lower = heardText.lowercase()
+        val sb = StringBuilder()
+        if (ENGINE_CYCLE_WORDS.any { lower.contains(it) }) {
+            sb.append("Engine cycle order is intake → compression → power → exhaust. ")
+            sb.append("Lead with stroke and cycle information when relevant to the question. ")
+        }
+        sb.append(
+            "You are a hands-free earpiece assistant for a forklift, lift truck, and vehicle repair technician in a shop or warehouse. " +
+            "Someone nearby just said this — give the technician a concise, accurate answer they can immediately use or act on. " +
+            "Forklift, lift truck, propane, LPG, hydraulic, mast, cylinder, carriage, cherry picker, boom lift, electrical, or mechanical questions: " +
+            "answer in 2-3 sentences — accuracy and practicality over brevity, real-world troubleshooting over theory. " +
+            "Non-technical: 1 sentence. " +
+            "No preamble. No 'I think'. No 'Great question'. No markdown. Plain spoken English only."
+        )
+        return sb.toString()
     }
 
     private fun onCleanup() {
@@ -354,11 +394,23 @@ class ConversationOrchestrator(
         private const val RECONNECT_DELAY_MS = 2_000L
         private const val TTS_CONNECT_TIMEOUT_MS = 4_000L
         private const val TTS_MODEL = "aura-2-luna-en"
-        private const val SYSTEM_PROMPT =
-            "You are a real-time earpiece assistant for someone in an interview, maintenance job, or technical setting. " +
-            "Someone nearby just said this. Give the user a concise, accurate answer they can immediately use or repeat. " +
-            "Technical, electrical, or mechanical questions: answer precisely in 2-3 sentences — accuracy matters more than brevity. " +
-            "Non-technical or conversational: 1 sentence of useful context or suggestion. " +
-            "No preamble. No 'I think'. No 'Great question'. No markdown. Plain spoken English only."
+
+        private val VEHICLE_DOMAIN_WORDS = listOf(
+            "forklift", "lift truck", "pallet jack", "cherry picker", "boom lift", "scissor lift",
+            "mast", "carriage", "fork", "tine", "hydraulic", "cylinder", "pump", "hose", "fitting",
+            "propane", "lpg", "regulator", "vaporizer",
+            "counterweight", "load center", "overhead guard",
+            "drive axle", "steer axle", "differential", "torque converter",
+            "inching pedal", "service brake", "parking brake",
+            "solid pneumatic", "cushion tire",
+            "solenoid", "contactor", "battery charger",
+            "error code", "fault code",
+        )
+
+        private val ENGINE_CYCLE_WORDS = listOf(
+            "stroke", "cycle", "piston", "compression", "intake", "exhaust", "power stroke",
+            "tdc", "bdc", "top dead center", "bottom dead center",
+            "firing order", "spark plug", "carburetor", "ignition timing",
+        )
     }
 }

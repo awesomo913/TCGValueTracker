@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import com.owner.assist.R
+import com.owner.assist.data.AppLogger
 import com.owner.assist.data.SecureKeyStore
 import com.owner.assist.pipeline.ConversationOrchestrator
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +35,7 @@ class AssistantService : Service() {
     override fun onCreate() {
         super.onCreate()
         NotificationHelper.ensureChannel(this)
+        AppLogger.init(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -107,8 +109,10 @@ class AssistantService : Service() {
     private fun startUp() {
         if (orchestrator != null) {
             Log.i(TAG, "already running — ignoring START")
+            AppLogger.log("SVC", "START ignored — already running")
             return
         }
+        AppLogger.log("SVC", "START")
         val freshScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         scope = freshScope
 
@@ -130,6 +134,7 @@ class AssistantService : Service() {
         val keys = SecureKeyStore(this)
         if (!keys.isAvailable || !keys.keysComplete()) {
             Log.w(TAG, "keys missing — stopping immediately")
+            AppLogger.log("SVC", "STOP keys missing isAvailable=${keys.isAvailable} keysComplete=${keys.keysComplete()}")
             hardStop()
             return
         }
@@ -168,6 +173,7 @@ class AssistantService : Service() {
     }
 
     private fun hardStop() {
+        AppLogger.log("SVC", "STOP hard")
         softStop()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -175,6 +181,7 @@ class AssistantService : Service() {
 
     override fun onDestroy() {
         Log.i(TAG, "onDestroy")
+        AppLogger.log("SVC", "DESTROY")
         // Catch OS-driven kills (low-memory trim, adb shell stop).
         // hardStop() is idempotent.
         if (orchestrator != null || scope != null) {

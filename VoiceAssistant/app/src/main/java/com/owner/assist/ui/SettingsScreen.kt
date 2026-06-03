@@ -194,21 +194,20 @@ fun SettingsScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            SectionLabel("Glasses button control")
+            SectionLabel("Glasses button control (in dev)")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Intercept Meta Ray-Ban taps")
-                Switch(checked = glassesButtons, onCheckedChange = { glassesButtons = it })
+                Text("Intercept Meta Ray-Ban taps (in dev)")
+                Switch(checked = false, onCheckedChange = {}, enabled = false)
             }
             Text(
-                "Requires Meta View app to be disabled or uninstalled. " +
-                "Single tap = force next response. Double tap = toggle assistant on/off.",
+                "Not yet active — needs live testing with glasses. " +
+                "Requires Meta View disabled or uninstalled.",
                 style = MaterialTheme.typography.bodySmall,
-                color = if (glassesButtons) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(modifier = Modifier.height(12.dp))

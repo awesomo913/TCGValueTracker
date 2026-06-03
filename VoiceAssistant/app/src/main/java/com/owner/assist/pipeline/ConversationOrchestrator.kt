@@ -7,6 +7,7 @@ import com.owner.assist.audio.AudioPlayer
 import com.owner.assist.audio.BluetoothScoManager
 import com.owner.assist.audio.MicCapture
 import com.owner.assist.audio.writeWavHeader
+import com.owner.assist.data.AppLogger
 import com.owner.assist.data.AssistantMode
 import com.owner.assist.data.ChatLogger
 import com.owner.assist.data.NoteLogger
@@ -88,6 +89,7 @@ class ConversationOrchestrator(
             try {
                 val route = sco.connect()
                 Log.i(TAG, "Audio route: $route")
+                AppLogger.log("SCO", "route=$route")
                 AssistantStateBus.set(AssistantState.LISTENING)
 
                 val capture = launch { captureLoop() }
@@ -97,6 +99,7 @@ class ConversationOrchestrator(
             } catch (t: Throwable) {
                 if (t is kotlinx.coroutines.CancellationException) throw t
                 Log.e(TAG, "orchestrator failed: ${t.message}", t)
+                AppLogger.log("CRASH", "orchestrator: ${t.javaClass.simpleName} ${t.message}")
             } finally {
                 onCleanup()
             }
@@ -319,8 +322,10 @@ class ConversationOrchestrator(
                                 AssistantStateBus.addEvent("Heard: ${text.take(50)}")
                                 utteranceCh.trySend(toSend)
                             }
-                            is DeepgramSttClient.Event.Error ->
+                            is DeepgramSttClient.Event.Error -> {
                                 Log.w(TAG, "STT error: ${ev.cause.message}")
+                                AppLogger.log("STT", "error: ${ev.cause.javaClass.simpleName} ${ev.cause.message}")
+                            }
                             DeepgramSttClient.Event.Closed ->
                                 Log.i(TAG, "STT WS closed — reconnecting")
                             is DeepgramSttClient.Event.Partial -> Unit
@@ -330,6 +335,7 @@ class ConversationOrchestrator(
                     throw e
                 } catch (e: Throwable) {
                     Log.w(TAG, "STT session failed: ${e.message}")
+                    AppLogger.log("STT", "session failed: ${e.javaClass.simpleName} ${e.message}")
                 } finally {
                     micJob.cancel()
                 }
@@ -427,6 +433,7 @@ class ConversationOrchestrator(
                     }
                     is DeepgramTtsClient.Event.Error -> {
                         Log.w(TAG, "TTS error: ${ev.cause.message}")
+                        AppLogger.log("TTS", "error: ${ev.cause.javaClass.simpleName} ${ev.cause.message}")
                         sessionReady.completeExceptionally(ev.cause)
                     }
                     else -> Unit
@@ -473,7 +480,10 @@ class ConversationOrchestrator(
                     responseBuilder.append(delta)
                     splitter.feed(delta).forEach { sentence -> sentenceCh.send(sentence) }
                 }
-            } ?: Log.w(TAG, "LLM hit maxThinkTimeSec=${keys.maxThinkTimeSec}s — truncating")
+            } ?: run {
+                Log.w(TAG, "LLM hit maxThinkTimeSec=${keys.maxThinkTimeSec}s — truncating")
+                AppLogger.log("LLM", "timeout hit maxThinkSec=${keys.maxThinkTimeSec}")
+            }
             val tail = splitter.drain()
             if (tail.isNotEmpty()) {
                 responseBuilder.append(tail)
@@ -483,6 +493,7 @@ class ConversationOrchestrator(
             throw e
         } catch (e: Throwable) {
             Log.w(TAG, "LLM stream error: ${e.message}")
+            AppLogger.log("LLM", "stream error: ${e.javaClass.simpleName} ${e.message}")
         } finally {
             sentenceCh.close()
         }

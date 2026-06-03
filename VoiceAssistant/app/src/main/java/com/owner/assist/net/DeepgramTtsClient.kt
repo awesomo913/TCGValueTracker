@@ -1,8 +1,10 @@
 package com.owner.assist.net
 
 import android.util.Log
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -89,13 +91,18 @@ class DeepgramTtsClient(
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                trySend(Event.Audio(bytes.toByteArray()))
+                val result = trySend(Event.Audio(bytes.toByteArray()))
+                if (result.isFailure) {
+                    Log.e(TAG, "FRAME DROPPED — channel full! ${bytes.size}B lost")
+                } else {
+                    Log.v(TAG, "TTS frame: ${bytes.size}B")
+                }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.w(TAG, "TTS WS failure: ${t.message}")
                 trySend(Event.Error(t))
-                close(t)
+                close()
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
@@ -109,8 +116,12 @@ class DeepgramTtsClient(
             }
         })
 
-        awaitClose { ws.close(1000, "flow cancelled") }
-    }
+        awaitClose { ws.cancel() }
+    // Unlimited downstream buffer: the callbackFlow internal channel (64 slots) drains
+    // immediately into this buffer via a fast intermediary coroutine, so trySend in
+    // OkHttp callbacks never blocks and never drops frames when Deepgram bursts audio
+    // faster than AudioTrack can consume it (~3-6x realtime synthesis).
+    }.buffer(Channel.UNLIMITED)
 
     private fun escape(s: String): String {
         // JSON string escape — Kotlin serialization would also work but keeps deps tiny here.

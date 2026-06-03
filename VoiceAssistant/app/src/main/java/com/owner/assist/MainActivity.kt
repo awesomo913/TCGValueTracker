@@ -11,7 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.owner.assist.ui.ChatLogScreen
 import com.owner.assist.ui.HomeScreen
+import com.owner.assist.ui.NotesScreen
 import com.owner.assist.ui.SettingsScreen
 import com.owner.assist.ui.theme.VoiceAssistantTheme
 
@@ -36,10 +38,20 @@ private fun AppRoot() {
             modifier = Modifier.padding(padding),
         ) {
             composable("home") {
-                HomeScreen(onOpenSettings = { nav.navigate("settings") })
+                HomeScreen(
+                    onOpenSettings = { nav.navigate("settings") },
+                    onOpenChatLog  = { nav.navigate("chatlogs") },
+                    onOpenNotes    = { nav.navigate("notes") },
+                )
             }
             composable("settings") {
                 SettingsScreen(onBack = { nav.popBackStack() })
+            }
+            composable("chatlogs") {
+                ChatLogScreen(onBack = { nav.popBackStack() })
+            }
+            composable("notes") {
+                NotesScreen(onBack = { nav.popBackStack() })
             }
         }
     }

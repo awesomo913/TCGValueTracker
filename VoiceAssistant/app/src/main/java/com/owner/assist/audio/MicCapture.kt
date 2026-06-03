@@ -49,7 +49,8 @@ class MicCapture(private val ctx: Context) {
             bufSize,
         )
         if (rec.state != AudioRecord.STATE_INITIALIZED) {
-            close(IllegalStateException("AudioRecord init failed"))
+            Log.e(TAG, "AudioRecord init failed — mic may be held by another app (state=${rec.state})")
+            close(IllegalStateException("AudioRecord init failed state=${rec.state}"))
             return@callbackFlow
         }
         rec.startRecording()

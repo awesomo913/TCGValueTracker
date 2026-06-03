@@ -51,10 +51,52 @@ class AssistantService : Service() {
                 val orch = orchestrator ?: return START_NOT_STICKY
                 val s = scope
                 if (s == null) {
-                    Log.w(TAG, "CALIBRATE_WINDOW ignored — scope is null (service not running)")
+                    Log.w(TAG, "CALIBRATE_WINDOW ignored — scope is null")
                 } else {
-                    s.launch { orch.startCalibrationWindow(3_000L) }
+                    s.launch { orch.startCalibrationWindow(3_500L) }
                 }
+                return START_NOT_STICKY
+            }
+            ACTION_RECORD_SESSION -> {
+                val orch = orchestrator ?: return START_NOT_STICKY
+                val path = orch.startSessionRecording()
+                if (path.isNotEmpty()) {
+                    AssistantStateBus.setSessionRecording(true)
+                    AssistantStateBus.addEvent("Recording session...")
+                }
+                return START_NOT_STICKY
+            }
+            ACTION_STOP_RECORD -> {
+                val orch = orchestrator ?: return START_NOT_STICKY
+                val path = orch.stopSessionRecording()
+                AssistantStateBus.setSessionRecording(false)
+                if (path.isNotEmpty()) {
+                    AssistantStateBus.setSessionSavedPath(path)
+                    AssistantStateBus.addEvent("Saved: ${path.substringAfterLast('/')}")
+                }
+                return START_NOT_STICKY
+            }
+            ACTION_TUNE_QUESTIONER -> {
+                val orch = orchestrator ?: return START_NOT_STICKY
+                val s = scope ?: return START_NOT_STICKY
+                s.launch { orch.startQuestionerTuneWindow(5_000L) }
+                return START_NOT_STICKY
+            }
+            ACTION_CLEAR_QUESTIONERS -> {
+                com.owner.assist.data.QuestionerProfileStore.clear(this)
+                AssistantStateBus.addEvent("Questioner profiles cleared")
+                return START_NOT_STICKY
+            }
+            ACTION_FORCE_RESPOND -> {
+                val orch = orchestrator
+                if (orch != null) orch.forceRespondNext.set(true)
+                else Log.d(TAG, "FORCE_RESPOND ignored — orchestrator not running")
+                return START_NOT_STICKY
+            }
+            ACTION_RESTART -> {
+                Log.i(TAG, "RESTART — tearing down and rebuilding in-place")
+                softStop()
+                android.os.Handler(mainLooper).postDelayed({ startUp() }, 250L)
                 return START_NOT_STICKY
             }
             ACTION_START, null -> startUp()
@@ -113,7 +155,9 @@ class AssistantService : Service() {
         nm.notify(NotificationHelper.FG_NOTIF_ID, NotificationHelper.build(this, text, state))
     }
 
-    private fun hardStop() {
+    /** Tears down the orchestrator and scope but keeps the service alive as foreground.
+     *  Used by ACTION_RESTART so startUp() can rebuild without a service lifecycle gap. */
+    private fun softStop() {
         orchestrator?.stop()
         orchestrator = null
         stateJob?.cancel()
@@ -121,6 +165,10 @@ class AssistantService : Service() {
         scope?.cancel()
         scope = null
         AssistantStateBus.set(AssistantState.OFF)
+    }
+
+    private fun hardStop() {
+        softStop()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -151,8 +199,14 @@ class AssistantService : Service() {
         private const val TAG = "AssistantService"
         const val ACTION_START = "com.owner.assist.action.START"
         const val ACTION_STOP = "com.owner.assist.action.STOP"
+        const val ACTION_RESTART = "com.owner.assist.action.RESTART"
         const val ACTION_CALIBRATE = "com.owner.assist.action.CALIBRATE"
         const val ACTION_CALIBRATE_WINDOW = "com.owner.assist.action.CALIBRATE_WINDOW"
+        const val ACTION_RECORD_SESSION = "com.owner.assist.action.RECORD_SESSION"
+        const val ACTION_STOP_RECORD = "com.owner.assist.action.STOP_RECORD"
+        const val ACTION_TUNE_QUESTIONER = "com.owner.assist.action.TUNE_QUESTIONER"
+        const val ACTION_CLEAR_QUESTIONERS = "com.owner.assist.action.CLEAR_QUESTIONERS"
+        const val ACTION_FORCE_RESPOND = "com.owner.assist.action.FORCE_RESPOND"
 
         fun startIntent(ctx: android.content.Context): Intent =
             Intent(ctx, AssistantService::class.java).setAction(ACTION_START)
@@ -160,10 +214,28 @@ class AssistantService : Service() {
         fun stopIntent(ctx: android.content.Context): Intent =
             Intent(ctx, AssistantService::class.java).setAction(ACTION_STOP)
 
+        fun restartIntent(ctx: android.content.Context): Intent =
+            Intent(ctx, AssistantService::class.java).setAction(ACTION_RESTART)
+
         fun calibrateIntent(ctx: android.content.Context): Intent =
             Intent(ctx, AssistantService::class.java).setAction(ACTION_CALIBRATE)
 
         fun calibrateWindowIntent(ctx: android.content.Context): Intent =
             Intent(ctx, AssistantService::class.java).setAction(ACTION_CALIBRATE_WINDOW)
+
+        fun recordSessionIntent(ctx: android.content.Context): Intent =
+            Intent(ctx, AssistantService::class.java).setAction(ACTION_RECORD_SESSION)
+
+        fun stopRecordIntent(ctx: android.content.Context): Intent =
+            Intent(ctx, AssistantService::class.java).setAction(ACTION_STOP_RECORD)
+
+        fun tuneQuestionerIntent(ctx: android.content.Context): Intent =
+            Intent(ctx, AssistantService::class.java).setAction(ACTION_TUNE_QUESTIONER)
+
+        fun clearQuestionersIntent(ctx: android.content.Context): Intent =
+            Intent(ctx, AssistantService::class.java).setAction(ACTION_CLEAR_QUESTIONERS)
+
+        fun forceRespondIntent(ctx: android.content.Context): Intent =
+            Intent(ctx, AssistantService::class.java).setAction(ACTION_FORCE_RESPOND)
     }
 }

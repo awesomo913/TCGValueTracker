@@ -61,6 +61,59 @@ class SecureKeyStore(context: Context) {
                 ?: Log.w(TAG, "drop write wakeWord — keystore unavailable")
         }
 
+    /** Free-text domain context shown to the LLM as part of its system prompt.
+     *  Blank = use the built-in forklift/technician default. */
+    var contextBlurb: String
+        get() = prefs?.getString(KEY_CONTEXT_BLURB, "") ?: ""
+        set(value) {
+            prefs?.edit()?.putString(KEY_CONTEXT_BLURB, value)?.apply()
+                ?: Log.w(TAG, "drop write contextBlurb — keystore unavailable")
+        }
+
+    /**
+     * 0 = most responsive (sends each sentence immediately, ~680ms gaps between sentences).
+     * 100 = smoothest (buffers all sentences, no gaps, slowest start).
+     * Maps to sentence-batch size: (level / 10) + 1.
+     */
+    var responsivenessLevel: Int
+        get() = prefs?.getInt(KEY_RESPONSIVENESS, 25) ?: 25
+        set(value) {
+            prefs?.edit()?.putInt(KEY_RESPONSIVENESS, value.coerceIn(0, 100))?.apply()
+                ?: Log.w(TAG, "drop write responsivenessLevel — keystore unavailable")
+        }
+
+    /** Max seconds the LLM is allowed to stream before being cut off. */
+    var maxThinkTimeSec: Int
+        get() = prefs?.getInt(KEY_MAX_THINK_SEC, 30) ?: 30
+        set(value) {
+            prefs?.edit()?.putInt(KEY_MAX_THINK_SEC, value.coerceIn(5, 60))?.apply()
+                ?: Log.w(TAG, "drop write maxThinkTimeSec — keystore unavailable")
+        }
+
+    /** Absolute path to the saved voice calibration WAV file. Empty if none recorded yet. */
+    var voiceCalibrationPath: String
+        get() = prefs?.getString(KEY_CALIBRATION_PATH, "") ?: ""
+        set(value) {
+            prefs?.edit()?.putString(KEY_CALIBRATION_PATH, value)?.apply()
+                ?: Log.w(TAG, "drop write voiceCalibrationPath — keystore unavailable")
+        }
+
+    /** PASSIVE = respond to others in the room. PERSONAL = respond to the user's own voice. */
+    var assistantMode: AssistantMode
+        get() = AssistantMode.fromId(prefs?.getString(KEY_ASSISTANT_MODE, AssistantMode.PASSIVE.id))
+        set(value) {
+            prefs?.edit()?.putString(KEY_ASSISTANT_MODE, value.id)?.apply()
+                ?: Log.w(TAG, "drop write assistantMode — keystore unavailable")
+        }
+
+    /** When true, intercept Meta Ray-Ban touchpad events. Default OFF — requires Meta View disabled. */
+    var glassesButtonsEnabled: Boolean
+        get() = prefs?.getBoolean(KEY_GLASSES_BUTTONS, false) ?: false
+        set(value) {
+            prefs?.edit()?.putBoolean(KEY_GLASSES_BUTTONS, value)?.apply()
+                ?: Log.w(TAG, "drop write glassesButtonsEnabled — keystore unavailable")
+        }
+
     fun keysComplete(): Boolean {
         if (prefs == null) return false
         val llmKey = if (llmProvider == LlmChoice.GROQ) groqKey else deepseekKey
@@ -83,6 +136,12 @@ class SecureKeyStore(context: Context) {
         private const val KEY_DEEPSEEK = "deepseek_key"
         private const val KEY_LLM_CHOICE = "llm_choice"
         private const val KEY_WAKE_WORD = "wake_word_enabled"
+        private const val KEY_CONTEXT_BLURB = "context_blurb"
+        private const val KEY_RESPONSIVENESS = "responsiveness_level"
+        private const val KEY_MAX_THINK_SEC = "max_think_sec"
+        private const val KEY_CALIBRATION_PATH = "calibration_path"
+        private const val KEY_ASSISTANT_MODE = "assistant_mode"
+        private const val KEY_GLASSES_BUTTONS = "glasses_buttons_enabled"
         private val DEFAULTS = mapOf(
             KEY_DEEPGRAM to "",
             KEY_GROQ to "",
@@ -96,5 +155,27 @@ enum class LlmChoice(val id: String, val display: String) {
 
     companion object {
         fun fromId(id: String?): LlmChoice = entries.firstOrNull { it.id == id } ?: GROQ
+    }
+}
+
+enum class AssistantMode(val id: String, val display: String) {
+    PASSIVE("passive", "Others"),
+    PERSONAL("personal", "Me");
+
+    companion object {
+        fun fromId(id: String?): AssistantMode = entries.firstOrNull { it.id == id } ?: PASSIVE
+    }
+}
+
+/** Controls how fast the assistant speaks vs. how seamless the audio sounds.
+ *  RESPONSIVE: send each sentence as it's ready — first word plays faster but
+ *              there are ~680ms pauses between sentences.
+ *  SMOOTH: wait for the full reply — no pauses, but audio starts later. */
+enum class ResponseMode(val id: String, val display: String) {
+    RESPONSIVE("responsive", "Responsive"),
+    SMOOTH("smooth", "Smooth");
+
+    companion object {
+        fun fromId(id: String?): ResponseMode = entries.firstOrNull { it.id == id } ?: RESPONSIVE
     }
 }

@@ -34,9 +34,18 @@ class BluetoothScoManager(private val ctx: Context) {
     private var legacyReceiver: BroadcastReceiver? = null
     private var modernDeviceSet: Boolean = false
     private var savedMusicVolume: Int = -1
+    private var savedAudioMode: Int = AudioManager.MODE_NORMAL
 
     suspend fun connect(timeoutMs: Long = SCO_TIMEOUT_MS): Route {
-        val route = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) connectModern(timeoutMs)
+        // Ensure we start from NORMAL mode. A previous session may have set MODE_IN_COMMUNICATION
+        // without restoring it (e.g. crash, hard kill). Stale incall mode silences AudioRecord
+        // by routing the mic to the SCO headset instead of the phone's internal mic.
+        if (audioManager.mode != AudioManager.MODE_NORMAL) {
+            Log.w(TAG, "Stale audio mode ${audioManager.mode} — resetting to NORMAL")
+            audioManager.mode = AudioManager.MODE_NORMAL
+            delay(100)
+        }
+        val route = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) connectModern()
         else connectLegacy(timeoutMs)
         if (route == Route.SCO) {
             // Max both streams: VOICE_CALL for legacy routing, MUSIC for USAGE_MEDIA AudioTrack.
@@ -90,29 +99,40 @@ class BluetoothScoManager(private val ctx: Context) {
     // ------- API 31+ path -------
 
     @android.annotation.SuppressLint("NewApi")
-    private fun connectModern(timeoutMs: Long): Route {
-        val scoDevice = audioManager.availableCommunicationDevices
-            .firstOrNull { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO }
-        if (scoDevice == null) {
-            Log.w(TAG, "no BT SCO device in availableCommunicationDevices")
-            return Route.FALLBACK_PHONE
+    private suspend fun connectModern(): Route {
+        // Do NOT set MODE_IN_COMMUNICATION here — it routes the mic to the SCO headset mic,
+        // which silences AudioRecord (SCO mic on Oakley Meta is 8kHz only, incompatible with
+        // our 16kHz AudioRecord). Samsung routes USAGE_MEDIA to SCO automatically when
+        // setCommunicationDevice is active, so we don't need the mode change for output either.
+        repeat(SCO_MODERN_RETRIES) { attempt ->
+            val devices = audioManager.availableCommunicationDevices
+            Log.i(TAG, "SCO attempt ${attempt + 1}/$SCO_MODERN_RETRIES — available: ${devices.map { it.type }}")
+            // TYPE_BLUETOOTH_SCO covers classic headsets; TYPE_BLE_HEADSET covers LE Audio earbuds.
+            val scoDevice = devices.firstOrNull {
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    it.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+            }
+            if (scoDevice != null) {
+                val ok = try {
+                    audioManager.setCommunicationDevice(scoDevice)
+                } catch (e: Exception) {
+                    Log.w(TAG, "setCommunicationDevice threw: ${e.message}")
+                    false
+                }
+                if (ok) {
+                    Log.i(TAG, "SCO route set via setCommunicationDevice type=${scoDevice.type} (attempt ${attempt + 1})")
+                    modernDeviceSet = true
+                    return Route.SCO
+                }
+            }
+            if (attempt < SCO_MODERN_RETRIES - 1) {
+                Log.w(TAG, "no BT SCO/BLE device yet — retrying in ${SCO_MODERN_DELAY_MS}ms")
+                delay(SCO_MODERN_DELAY_MS)
+            }
         }
-        val ok = try {
-            audioManager.setCommunicationDevice(scoDevice)
-        } catch (e: Exception) {
-            Log.w(TAG, "setCommunicationDevice threw: ${e.message}")
-            false
-        }
-        return if (ok) {
-            Log.i(TAG, "SCO route set via setCommunicationDevice")
-            modernDeviceSet = true
-            Route.SCO
-        } else {
-            Route.FALLBACK_PHONE
-        }.also {
-            // timeoutMs unused on modern path — the call is synchronous; suppressed warning
-            if (timeoutMs <= 0) Log.v(TAG, "timeout arg ignored on API 31+")
-        }
+        Log.w(TAG, "SCO not available after $SCO_MODERN_RETRIES attempts — FALLBACK_PHONE")
+        return Route.FALLBACK_PHONE
     }
 
     // ------- legacy path (< API 31) -------
@@ -176,6 +196,10 @@ class BluetoothScoManager(private val ctx: Context) {
         private const val SCO_TIMEOUT_MS = 8_000L
         private const val SCO_MAX_RETRIES = 3
         private const val SCO_RETRY_DELAY_MS = 2_000L
+        // Modern path retries: MODE_IN_COMMUNICATION triggers async BT negotiation;
+        // SCO device may not appear in availableCommunicationDevices for up to 1-2s.
+        private const val SCO_MODERN_RETRIES = 5
+        private const val SCO_MODERN_DELAY_MS = 400L
         const val ACTION_HEADSET_STATE = BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED
     }
 }

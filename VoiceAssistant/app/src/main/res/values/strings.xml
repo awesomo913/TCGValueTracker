@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Voice Assistant</string>
+    <string name="tile_label">Assistant</string>
+    <string name="notif_channel_id">assistant_status</string>
+    <string name="notif_channel_name">Assistant status</string>
+    <string name="notif_listening">Listening</string>
+    <string name="notif_thinking">Thinking</string>
+    <string name="notif_speaking">Speaking</string>
+    <string name="notif_action_stop">STOP</string>
+</resources>

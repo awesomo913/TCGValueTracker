@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  voice-test:
+    build: .
+    environment:
+      # Path inside the container where the APK is mounted
+      - APK_PATH=/apk/app-debug.apk
+
+      # Set DEVICE_IP to phone's IP for direct TCP mode.
+      # Leave blank to relay through host's adb server (USB/emulator on Windows host).
+      - DEVICE_IP=${DEVICE_IP:-}
+
+      # Host-side adb server. Docker on Windows exposes the host at host.docker.internal.
+      # Ignored when DEVICE_IP is set (TCP direct mode uses a local adb server instead).
+      - ADB_SERVER_HOST=${ADB_SERVER_HOST:-host.docker.internal}
+      - ADB_SERVER_PORT=${ADB_SERVER_PORT:-5037}
+
+      # How many seconds to collect logcat after launch
+      - LOG_SECONDS=${LOG_SECONDS:-20}
+
+      # smoke  — verify install + no crash + service started (no API keys needed)
+      # integration — also expects STT connected, audio route logged, speaker filter active
+      - TEST_LEVEL=${TEST_LEVEL:-smoke}
+
+    volumes:
+      - type: bind
+        source: ../app/build/outputs/apk/debug/app-debug.apk
+        target: /apk/app-debug.apk
+        read_only: true
+
+    # host-gateway maps host.docker.internal -> Windows host IP inside the container
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

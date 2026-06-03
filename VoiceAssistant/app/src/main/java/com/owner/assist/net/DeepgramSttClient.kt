@@ -111,7 +111,7 @@ class DeepgramSttClient(
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.w(TAG, "STT WS failure: ${t.message}")
                 trySend(Event.Error(t))
-                close(t)
+                close()  // error already delivered as Event.Error; closing with cause would crash KeepAlive coroutine
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
@@ -135,7 +135,7 @@ class DeepgramSttClient(
         }
 
         awaitClose {
-            ws.close(1000, "flow cancelled")
+            ws.cancel()  // force-close immediately; graceful close leaves reader alive long enough to crash on EOFException
         }
     }
 

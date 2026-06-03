@@ -22,11 +22,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.owner.assist.data.LlmChoice
 import com.owner.assist.data.OemAutostart
 import com.owner.assist.data.SecureKeyStore
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +55,10 @@ fun SettingsScreen(onBack: () -> Unit) {
     var deepseek by remember { mutableStateOf(store.deepseekKey) }
     var provider by remember { mutableStateOf(store.llmProvider) }
     var wakeWord by remember { mutableStateOf(store.wakeWordEnabled) }
+    var contextBlurb by remember { mutableStateOf(store.contextBlurb) }
+    var responsivenessLevel by remember { mutableIntStateOf(store.responsivenessLevel) }
+    var maxThinkTimeSec by remember { mutableIntStateOf(store.maxThinkTimeSec) }
+    var glassesButtons by remember { mutableStateOf(store.glassesButtonsEnabled) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -131,6 +139,78 @@ fun SettingsScreen(onBack: () -> Unit) {
                 ) { Text("Open autostart settings") }
             }
 
+            SectionLabel("Response speed")
+            val speedLabel = when {
+                responsivenessLevel <= 20  -> "Very responsive — fastest start, noticeable gaps between sentences"
+                responsivenessLevel <= 45  -> "Responsive — quick start with small gaps"
+                responsivenessLevel <= 65  -> "Balanced — moderate start time, minimal gaps"
+                responsivenessLevel <= 85  -> "Smooth — slower start, seamless audio"
+                else                       -> "Very smooth — waits for full reply, no gaps at all"
+            }
+            Text(speedLabel, style = MaterialTheme.typography.bodySmall)
+            Slider(
+                value = responsivenessLevel.toFloat(),
+                onValueChange = { responsivenessLevel = it.roundToInt() },
+                valueRange = 0f..100f,
+                steps = 9,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Fast", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Smooth", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            SectionLabel("Max formulation time")
+            Text(
+                "How long the AI can think before being cut off. Currently: ${maxThinkTimeSec}s. " +
+                "If responses run on too long, lower this.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Slider(
+                value = maxThinkTimeSec.toFloat(),
+                onValueChange = { maxThinkTimeSec = it.roundToInt() },
+                valueRange = 5f..60f,
+                steps = 10,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("5s", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("60s", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            SectionLabel("Domain knowledge")
+            Text(
+                "What should the assistant know about? " +
+                "Leave blank to keep the built-in forklift / technician context.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedTextField(
+                value = contextBlurb,
+                onValueChange = { contextBlurb = it },
+                label = { Text("Context (optional)") },
+                placeholder = { Text("e.g. You are an assistant for an HVAC technician…") },
+                minLines = 4,
+                maxLines = 10,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            SectionLabel("Glasses button control")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Intercept Meta Ray-Ban taps")
+                Switch(checked = glassesButtons, onCheckedChange = { glassesButtons = it })
+            }
+            Text(
+                "Requires Meta View app to be disabled or uninstalled. " +
+                "Single tap = force next response. Double tap = toggle assistant on/off.",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (glassesButtons) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = {
@@ -139,6 +219,10 @@ fun SettingsScreen(onBack: () -> Unit) {
                     store.deepseekKey = deepseek.trim()
                     store.llmProvider = provider
                     store.wakeWordEnabled = wakeWord
+                    store.contextBlurb = contextBlurb.trim()
+                    store.responsivenessLevel = responsivenessLevel
+                    store.maxThinkTimeSec = maxThinkTimeSec
+                    store.glassesButtonsEnabled = glassesButtons
                     onBack()
                 },
                 enabled = store.isAvailable,

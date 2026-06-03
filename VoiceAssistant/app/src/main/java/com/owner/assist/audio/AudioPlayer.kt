@@ -26,20 +26,29 @@ class AudioPlayer {
     @Volatile private var playbackStarted = false
     private val preBuffer = java.io.ByteArrayOutputStream()
     private var dumpStream: FileOutputStream? = null
+    private val eventLog = AudioEventLog()
 
-    // Silence trimmer state: Deepgram Aura-2 embeds inter-sentence silence (up to 400ms)
-    // in the raw PCM. Drop ALL silent chunks. Apply a 5ms fade-in on the first speech chunk
-    // after a silence run to prevent click artifacts at the abrupt 0→amplitude transition.
+    // Silence trimmer state. Deepgram Aura-2 embeds inter-sentence silence in raw PCM.
+    // We replace silent chunks with zeros to keep the AudioTrack buffer full (skipping them
+    // drains the buffer faster than Deepgram refills it → underrun). Two transition ramps
+    // prevent click artifacts:
+    //   fade-OUT on the first zero chunk (speech → silence): ramps lastSpeechSampleValue → 0.
+    //   fade-IN on the first speech chunk after silence (silence → speech): ramps 0 → full.
     private var consecutiveSilentChunks = 0
+    private var consecutiveSpeechChunks = 0
     private var needsFadeIn = false
+    private var lastSpeechSampleValue: Short = 0
 
     fun start() {
         if (track != null) return
         totalBytesWritten.set(0L)
         playbackStarted = false
         consecutiveSilentChunks = 0
+        consecutiveSpeechChunks = 0
         needsFadeIn = false
+        lastSpeechSampleValue = 0
         synchronized(preBuffer) { preBuffer.reset() }
+        eventLog.start()
         try {
             val f = File("/sdcard/Download/pcm_dump.raw")
             dumpStream = FileOutputStream(f)
@@ -55,7 +64,6 @@ class AudioPlayer {
                 AudioAttributes.Builder()
                     // USAGE_MEDIA routes through BT SCO on Samsung when SCO is active
                     // (system log confirms "STRATEGY_MEDIA force bt sco").
-                    // USAGE_VOICE_COMMUNICATION blocks when no active call session.
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build(),
@@ -70,14 +78,12 @@ class AudioPlayer {
             .setBufferSizeInBytes(bufSize)
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
-        // Do NOT call t.play() here. Playback deferred to first writeAsync() call so
-        // the buffer has data before the hardware starts consuming it.
         track = t
-        Log.i(TAG, "AudioTrack ready (not yet playing) state=${t.state} sessionId=${t.audioSessionId} bufSize=$bufSize")
+        Log.i(TAG, "AudioTrack ready state=${t.state} sessionId=${t.audioSessionId} bufSize=$bufSize")
     }
 
-    /** True if the RMS of [pcm] is below SILENCE_RMS_THRESHOLD (int16 scale). */
-    private fun isSilentChunk(pcm: ByteArray): Boolean {
+    /** RMS squared per sample — computed once per chunk, used for both silence detection and logging. */
+    private fun computeRmsSq(pcm: ByteArray): Long {
         var sumSq = 0L
         var i = 0
         while (i + 1 < pcm.size) {
@@ -86,37 +92,59 @@ class AudioPlayer {
             i += 2
         }
         val count = pcm.size / 2
-        // RMS in int16 units. Compare to threshold squared to avoid sqrt.
-        return sumSq / count < SILENCE_RMS_SQ_THRESHOLD
+        return if (count > 0) sumSq / count else 0L
     }
 
     /** Write a PCM chunk on an IO thread. Caller must already be in a coroutine. */
     suspend fun writeAsync(pcm: ByteArray) = withContext(Dispatchers.IO) {
         val t = track ?: return@withContext
+        val rmsSq = computeRmsSq(pcm)
 
-        // Silence trimmer: replace Deepgram's noisy inter-sentence silence with zeroes.
-        // Skipping silence entirely drains the AudioTrack buffer faster than Deepgram refills it
-        // → underrun mid-response → glitch that persists to end. Writing zeroes keeps the buffer
-        // full while replacing the audible pseudo-silence with clean silence.
-        // During pre-buffer phase we skip silence so the 1s pre-buffer fills with speech only.
-        if (isSilentChunk(pcm)) {
+        // ── Silence path ────────────────────────────────────────────────────────────
+        if (rmsSq < SILENCE_RMS_SQ_THRESHOLD) {
             consecutiveSilentChunks++
+            consecutiveSpeechChunks = 0
             needsFadeIn = true
+            if (playbackStarted) {
+                // First silent chunk: ramp from last speech amplitude → 0 (no abrupt click).
+                // Subsequent silent chunks: pure zeros.
+                val out = if (consecutiveSilentChunks == 1 && lastSpeechSampleValue != 0.toShort()) {
+                    applyFadeOut(lastSpeechSampleValue, pcm.size)
+                } else {
+                    ByteArray(pcm.size)
+                }
+                val n = t.write(out, 0, out.size, AudioTrack.WRITE_BLOCKING)
+                if (n > 0) totalBytesWritten.addAndGet(n.toLong())
+                val ev = if (consecutiveSilentChunks == 1) "SIL_FADE" else "SIL_ZERO"
+                Log.d(TAG, "silence→${if (consecutiveSilentChunks == 1) "fadeOut(from=$lastSpeechSampleValue)" else "zeros"} chunk=$consecutiveSilentChunks rms=$rmsSq")
+                eventLog.log(ev, pcm.size, rmsSq, consecutiveSilentChunks, lastSpeechSampleValue, totalBytesWritten.get(), t.playbackHeadPosition)
+            }
+            return@withContext
+        }
+
+        // ── Speech path ─────────────────────────────────────────────────────────────
+        consecutiveSpeechChunks++
+
+        // Minimum-duration gate: after a silence run, require MIN_SPEECH_CHUNKS consecutive
+        // speech chunks before switching to speech mode. Prevents brief consonant/transition
+        // sounds (9-40ms) between silence gaps from playing as audible clicks.
+        if (consecutiveSilentChunks > 0 && consecutiveSpeechChunks < MIN_SPEECH_CHUNKS_AFTER_SILENCE) {
             if (playbackStarted) {
                 val zeros = ByteArray(pcm.size)
                 val n = t.write(zeros, 0, zeros.size, AudioTrack.WRITE_BLOCKING)
                 if (n > 0) totalBytesWritten.addAndGet(n.toLong())
-                Log.d(TAG, "silence→zeros (chunk $consecutiveSilentChunks)")
+                eventLog.log("SIL_GATE", pcm.size, rmsSq, consecutiveSilentChunks, lastSpeechSampleValue, totalBytesWritten.get(), t.playbackHeadPosition)
+                Log.d(TAG, "gate: brief post-silence chunk $consecutiveSpeechChunks/${MIN_SPEECH_CHUNKS_AFTER_SILENCE} rms=$rmsSq → zeros")
             }
             return@withContext
-        } else {
-            if (consecutiveSilentChunks > 0) {
-                Log.d(TAG, "speech resumed after $consecutiveSilentChunks silent chunks (${consecutiveSilentChunks * 40}ms trimmed)")
-            }
-            consecutiveSilentChunks = 0
         }
 
-        // Fade-in: apply 5ms (80 samples) linear ramp to first chunk after silence run.
+        if (consecutiveSilentChunks > 0) {
+            Log.d(TAG, "speech resumed after $consecutiveSilentChunks silent chunks (${consecutiveSilentChunks * 40}ms trimmed)")
+        }
+        consecutiveSilentChunks = 0
+
+        // Fade-in: apply 5ms (80 samples) linear ramp to first chunk after a silence run.
         val chunkToWrite = if (needsFadeIn) {
             needsFadeIn = false
             applyFadeIn(pcm)
@@ -129,29 +157,49 @@ class AudioPlayer {
             val accumulated: ByteArray
             synchronized(preBuffer) {
                 preBuffer.write(chunkToWrite)
-                if (preBuffer.size() < PRE_BUFFER_BYTES) return@withContext
+                if (preBuffer.size() < PRE_BUFFER_BYTES) {
+                    eventLog.log("PRE_BUF", chunkToWrite.size, rmsSq, 0, lastSpeechSampleValue, totalBytesWritten.get(), 0)
+                    return@withContext
+                }
                 accumulated = preBuffer.toByteArray()
                 preBuffer.reset()
             }
-            // Write accumulated data into the (still-paused) AudioTrack buffer, then play.
             val n = t.write(accumulated, 0, accumulated.size, AudioTrack.WRITE_BLOCKING)
-            if (n > 0) {
-                totalBytesWritten.addAndGet(n.toLong())
-                dumpStream?.write(accumulated, 0, n)
-                t.play()
-                playbackStarted = true
-                val bufMs = accumulated.size * 1000 / PCM_BYTES_PER_FRAME / SAMPLE_RATE
-                Log.i(TAG, "Pre-buffer full (${accumulated.size}B = ${bufMs}ms) — playback started. playState=${t.playState}")
+            if (n < 0) {
+                Log.w(TAG, "Pre-buffer write failed: error $n — skipping play()")
+                eventLog.log("WRITE_ERR", accumulated.size, rmsSq, 0, lastSpeechSampleValue, totalBytesWritten.get(), t.playbackHeadPosition)
+                return@withContext
             }
+            totalBytesWritten.addAndGet(n.toLong())
+            // Track last sample from the pre-buffer for future fade-out
+            if (accumulated.size >= 2) {
+                val li = accumulated.size - 2
+                lastSpeechSampleValue = ((accumulated[li + 1].toInt() shl 8) or (accumulated[li].toInt() and 0xFF)).toShort()
+            }
+            dumpStream?.write(accumulated, 0, n)
+            t.play()
+            playbackStarted = true
+            val bufMs = accumulated.size * 1000 / PCM_BYTES_PER_FRAME / SAMPLE_RATE
+            Log.i(TAG, "Pre-buffer full (${accumulated.size}B = ${bufMs}ms) — playback started. playState=${t.playState}")
+            eventLog.log("PLAY_START", accumulated.size, rmsSq, 0, lastSpeechSampleValue, totalBytesWritten.get(), t.playbackHeadPosition)
             return@withContext
         }
 
         val n = t.write(chunkToWrite, 0, chunkToWrite.size, AudioTrack.WRITE_BLOCKING)
-        if (n < 0) Log.w(TAG, "AudioTrack.write error $n")
-        else {
+        if (n < 0) {
+            Log.w(TAG, "AudioTrack.write error $n")
+            eventLog.log("WRITE_ERR", chunkToWrite.size, rmsSq, 0, lastSpeechSampleValue, totalBytesWritten.get(), t.playbackHeadPosition)
+        } else {
             if (n < chunkToWrite.size) Log.w(TAG, "AudioTrack.write short: $n/${chunkToWrite.size} B")
             totalBytesWritten.addAndGet(n.toLong())
-            Log.d(TAG, "chunk done: wrote $n/${chunkToWrite.size} B playHead=${t.playbackHeadPosition}")
+            // Use n (bytes actually written) not chunkToWrite.size as the upper bound.
+            // On a short write, the tail bytes were never played — ramp from them would click.
+            if (n >= 2) {
+                val li = n - 2
+                lastSpeechSampleValue = ((chunkToWrite[li + 1].toInt() shl 8) or (chunkToWrite[li].toInt() and 0xFF)).toShort()
+            }
+            Log.d(TAG, "chunk: $n/${chunkToWrite.size} B head=${t.playbackHeadPosition}")
+            eventLog.log("SPEECH", chunkToWrite.size, rmsSq, 0, lastSpeechSampleValue, totalBytesWritten.get(), t.playbackHeadPosition)
             dumpStream?.write(chunkToWrite, 0, n)
         }
     }
@@ -173,8 +221,27 @@ class AudioPlayer {
         return result
     }
 
+    /** Apply a linear fade-out ramp: [fromSample] → 0 over the full [size] bytes. */
+    private fun applyFadeOut(fromSample: Short, size: Int): ByteArray {
+        val result = ByteArray(size)
+        val sampleCount = size / 2
+        if (sampleCount == 0) return result
+        for (i in 0 until sampleCount) {
+            val amplitude = (fromSample.toInt() * (sampleCount - 1 - i) / sampleCount)
+                .coerceIn(-32768, 32767).toShort()
+            result[i * 2] = (amplitude.toInt() and 0xFF).toByte()
+            result[i * 2 + 1] = (amplitude.toInt() shr 8).toByte()
+        }
+        return result
+    }
+
     /** Returns the playback head position in frames — used to gate barge-in. */
     fun playbackHeadFrames(): Int = track?.playbackHeadPosition ?: 0
+
+    /** Set playback gain (0.0 = silent, 1.0 = full). Takes effect immediately mid-stream. */
+    fun setVolume(level: Float) {
+        track?.setVolume(level.coerceIn(0f, 1f))
+    }
 
     /**
      * Remaining playback time in ms based on how far the hardware head lags behind
@@ -182,7 +249,6 @@ class AudioPlayer {
      */
     fun remainingMs(): Long {
         val t = track ?: return 0L
-        // Mono PCM_16BIT: 1 frame = 2 bytes. playbackHeadPosition is in frames (Int, wraps at ~37h).
         val framesWritten = totalBytesWritten.get() / PCM_BYTES_PER_FRAME
         val framesPlayed = t.playbackHeadPosition.toLong()
         val remaining = maxOf(0L, framesWritten - framesPlayed)
@@ -190,21 +256,24 @@ class AudioPlayer {
     }
 
     fun stop() {
+        val headPos = track?.playbackHeadPosition ?: 0
         track?.let {
             try {
-                // stop() in streaming mode drains remaining buffer before halting.
-                // Do NOT call flush() — flush() discards buffered audio immediately.
                 if (playbackStarted) it.stop() else it.flush()
                 it.release()
             } catch (e: IllegalStateException) {
                 Log.w(TAG, "stop: ${e.message}")
             }
         }
+        eventLog.log("STOP", bytesWritten = totalBytesWritten.get(), headPos = headPos)
+        eventLog.stop()
         track = null
         totalBytesWritten.set(0L)
         playbackStarted = false
         consecutiveSilentChunks = 0
+        consecutiveSpeechChunks = 0
         needsFadeIn = false
+        lastSpeechSampleValue = 0
         synchronized(preBuffer) { preBuffer.reset() }
         try { dumpStream?.close() } catch (_: Exception) {}
         dumpStream = null
@@ -215,15 +284,15 @@ class AudioPlayer {
         const val SAMPLE_RATE = 16_000
         private const val PCM_BYTES_PER_FRAME = 2      // mono PCM_16BIT: 1 channel × 2 bytes
         // 1s of audio to buffer before starting playback. Deepgram streams in ~680ms synthesis
-        // batches even for a single speak() call — 500ms (old value) drained before the next
-        // batch arrived (logcat: restartIfDisabled at t+526ms). 1s > 680ms batch gap = no underrun.
+        // batches — 1s > 680ms batch gap = no underrun on the initial burst.
         private const val PRE_BUFFER_BYTES = SAMPLE_RATE * PCM_BYTES_PER_FRAME  // 32000 B = 1s
-        // Silence trimmer: drop ALL silent chunks (including the first one).
-        // Even a single 40ms silent chunk creates an audible micro-stutter at full amplitude resume.
-        private const val MAX_SILENCE_CHUNKS = 0
         // RMS threshold in int16 units squared. 80² = 6400 → ~6% of speech RMS (≈1308 int16).
         private const val SILENCE_RMS_SQ_THRESHOLD = 6400L
         // 5ms fade-in after silence run: 80 samples at 16kHz prevents click at 0→amplitude jump.
         private const val FADE_IN_SAMPLES = 80
+        // Require this many consecutive speech chunks after a silence run before switching to
+        // speech mode. Prevents brief consonant sounds (< 80ms) between silence gaps from
+        // playing as audible clicks. Each chunk ≈ 40ms, so 2 = 80ms minimum gate.
+        private const val MIN_SPEECH_CHUNKS_AFTER_SILENCE = 2
     }
 }

@@ -148,7 +148,8 @@ class AssistantService : Service() {
                 NotificationHelper.FG_NOTIF_ID,
                 notif,
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA,
             )
         } else {
             startForeground(NotificationHelper.FG_NOTIF_ID, notif)

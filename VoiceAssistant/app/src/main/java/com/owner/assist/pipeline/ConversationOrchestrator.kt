@@ -9,6 +9,9 @@ import com.owner.assist.audio.MicCapture
 import com.owner.assist.audio.writeWavHeader
 import com.owner.assist.data.AppLogger
 import com.owner.assist.data.AssistantMode
+import com.owner.assist.vision.BtCameraSource
+import com.owner.assist.vision.VisionCapture
+import com.owner.assist.vision.VisionClient
 import com.owner.assist.data.ChatLogger
 import com.owner.assist.data.NoteLogger
 import com.owner.assist.data.QuestionerProfile
@@ -75,6 +78,9 @@ class ConversationOrchestrator(
     // Glasses button: set by AssistantService on FORCE_RESPOND action
     val forceRespondNext = java.util.concurrent.atomic.AtomicBoolean(false)
 
+    // Vision
+    private var visionCapture: VisionCapture? = null
+
     // Questioner profile tuning
     @Volatile private var isQuestionerTuning = false
     private val questionerTuneSamples = mutableListOf<Pair<Int, Float>>()
@@ -91,6 +97,14 @@ class ConversationOrchestrator(
                 Log.i(TAG, "Audio route: $route")
                 AppLogger.log("SCO", "route=$route")
                 AssistantStateBus.set(AssistantState.LISTENING)
+
+                if (keys.visionEnabled) {
+                    val vc = VisionCapture(ctx)
+                    vc.bind()
+                    visionCapture = vc
+                    AppLogger.log("VISION", "camera bound hasPermission=${vc.hasPermission()}")
+                    if (keys.visionAlwaysOn) launch { alwaysOnVisionLoop() }
+                }
 
                 val capture = launch { captureLoop() }
                 val reply = launch { replyLoop() }
@@ -301,6 +315,15 @@ class ConversationOrchestrator(
 
                                 if (!shouldRespond) {
                                     Log.d(TAG, "SKIP[mode=$mode spk=$spk rms=${"%.1f".format(rms)}dB]: ${text.take(40)}")
+                                    return@collect
+                                }
+
+                                // Vision trigger — capture frame, speak description, skip LLM
+                                if (keys.visionEnabled && extractVisionTrigger(text)) {
+                                    scope.launch {
+                                        AppLogger.log("VISION", "trigger: ${text.take(50)}")
+                                        handleVisionTurn(text)
+                                    }
                                     return@collect
                                 }
 
@@ -579,6 +602,117 @@ class ConversationOrchestrator(
         return null
     }
 
+    // ── Vision ────────────────────────────────────────────────────────────────
+
+    private fun extractVisionTrigger(text: String): Boolean {
+        val lower = text.lowercase().trim()
+        val triggers = listOf(
+            "what is this", "what is that",
+            "what do you see", "what can you see",
+            "what's in front of me", "what's in front of you",
+            "read that", "read this",
+            "identify this", "identify that",
+            "describe what you see", "describe this",
+            "what tool is that", "what part is that",
+            "scan this", "look at this",
+            "what am i looking at",
+        )
+        return triggers.any { lower.contains(it) }
+    }
+
+    private suspend fun handleVisionTurn(utterance: String) {
+        AssistantStateBus.addEvent("Looking…")
+        AssistantStateBus.set(AssistantState.THINKING)
+        val description = try {
+            val btUrl = keys.btCameraUrl.trim()
+            val base64 = if (btUrl.isNotBlank()) {
+                BtCameraSource.captureJpegBase64(btUrl)
+            } else {
+                val vc = visionCapture ?: throw IllegalStateException("camera not bound")
+                vc.captureJpegBase64()
+            }
+            VisionClient.describe(base64, utterance, keys)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "vision turn failed: ${e.message}")
+            AppLogger.log("VISION", "turn error: ${e.javaClass.simpleName} ${e.message}")
+            "I couldn't get a clear image. Try again."
+        }
+        AssistantStateBus.addEvent("Vision: ${description.take(40)}")
+        speakDirect(description)
+        AssistantStateBus.set(AssistantState.LISTENING)
+    }
+
+    private suspend fun speakDirect(text: String) {
+        val tts = DeepgramTtsClient(keys.deepgramKey)
+        val sessionReady = kotlinx.coroutines.CompletableDeferred<DeepgramTtsClient.Session>()
+        val flushedCh = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+        gate.openMic()
+        AssistantStateBus.set(AssistantState.SPEAKING)
+        player.start()
+        val ttsJob = scope.launch {
+            tts.open(model = TTS_MODEL) { session -> sessionReady.complete(session) }
+                .collect { ev ->
+                    when (ev) {
+                        is DeepgramTtsClient.Event.Audio -> player.writeAsync(ev.pcm)
+                        DeepgramTtsClient.Event.Flushed -> flushedCh.trySend(Unit)
+                        is DeepgramTtsClient.Event.Error -> {
+                            Log.w(TAG, "speakDirect TTS err: ${ev.cause.message}")
+                            sessionReady.completeExceptionally(ev.cause)
+                        }
+                        else -> Unit
+                    }
+                }
+        }
+        try {
+            val session = withTimeout(TTS_CONNECT_TIMEOUT_MS) { sessionReady.await() }
+            session.runCatching { speak(text) }
+            session.runCatching { flush() }
+            withTimeoutOrNull(15_000L) { flushedCh.receive() }
+            session.runCatching { close() }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "speakDirect error: ${e.message}")
+            AppLogger.log("VISION", "speakDirect error: ${e.message}")
+        }
+        ttsJob.join()
+        val drainMs = player.remainingMs() + 200L
+        if (drainMs > 50) delay(drainMs)
+        player.stop()
+        gate.closeMic()
+    }
+
+    private suspend fun alwaysOnVisionLoop() {
+        Log.i(TAG, "always-on vision loop started")
+        AppLogger.log("VISION", "always-on started interval=${ALWAYS_ON_INTERVAL_MS}ms")
+        while (coroutineContext.isActive) {
+            delay(ALWAYS_ON_INTERVAL_MS)
+            if (!coroutineContext.isActive) break
+            try {
+                val btUrl = keys.btCameraUrl.trim()
+                val base64 = if (btUrl.isNotBlank()) {
+                    BtCameraSource.captureJpegBase64(btUrl)
+                } else {
+                    visionCapture?.captureJpegBase64() ?: continue
+                }
+                // Always-on uses Pi only — avoid cloud cost/latency for background scanning
+                // Build a minimal client call targeting Pi directly
+                val piUrl = keys.piVisionUrl.trim().trimEnd('/')
+                if (piUrl.isBlank()) continue
+                val result = VisionClient.describe(base64, "what do you see", keys)
+                AppLogger.log("VISION_BG", result.take(120))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                break
+            } catch (e: Exception) {
+                Log.w(TAG, "always-on vision error: ${e.message}")
+                AppLogger.log("VISION_BG", "error: ${e.message}")
+            }
+        }
+        Log.i(TAG, "always-on vision loop ended")
+    }
+
     private fun buildSystemPrompt(heardText: String, questionerName: String?): String {
         val lower = heardText.lowercase()
         val sb = StringBuilder()
@@ -598,6 +732,8 @@ class ConversationOrchestrator(
         utteranceCh.close()
         player.stop()
         sco.release()
+        visionCapture?.release()
+        visionCapture = null
         AssistantStateBus.set(AssistantState.OFF)
         AssistantStateBus.setTuningQuestioner(false)
     }
@@ -607,6 +743,7 @@ class ConversationOrchestrator(
         private const val RECONNECT_DELAY_MS = 2_000L
         private const val TTS_CONNECT_TIMEOUT_MS = 4_000L
         private const val TTS_MODEL = "aura-2-luna-en"
+        private const val ALWAYS_ON_INTERVAL_MS = 15_000L
 
         private const val DEFAULT_SYSTEM_PROMPT =
             "You are a hands-free earpiece assistant for a forklift, lift truck, and vehicle repair technician in a shop or warehouse. " +

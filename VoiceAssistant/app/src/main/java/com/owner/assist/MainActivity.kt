@@ -1,8 +1,10 @@
 package com.owner.assist
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -18,8 +20,13 @@ import com.owner.assist.ui.SettingsScreen
 import com.owner.assist.ui.theme.VoiceAssistantTheme
 
 class MainActivity : ComponentActivity() {
+
+    private val cameraPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* result logged by VisionCapture */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        cameraPermission.launch(Manifest.permission.CAMERA)
         setContent {
             VoiceAssistantTheme {
                 AppRoot()

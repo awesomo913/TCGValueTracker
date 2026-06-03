@@ -59,6 +59,10 @@ fun SettingsScreen(onBack: () -> Unit) {
     var responsivenessLevel by remember { mutableIntStateOf(store.responsivenessLevel) }
     var maxThinkTimeSec by remember { mutableIntStateOf(store.maxThinkTimeSec) }
     var glassesButtons by remember { mutableStateOf(store.glassesButtonsEnabled) }
+    var visionEnabled by remember { mutableStateOf(store.visionEnabled) }
+    var piVisionUrl by remember { mutableStateOf(store.piVisionUrl) }
+    var btCameraUrl by remember { mutableStateOf(store.btCameraUrl) }
+    var visionAlwaysOn by remember { mutableStateOf(store.visionAlwaysOn) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -194,6 +198,55 @@ fun SettingsScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            SectionLabel("Vision / Camera")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Enable vision commands")
+                Switch(checked = visionEnabled, onCheckedChange = { visionEnabled = it })
+            }
+            Text(
+                "Say \"what is this\", \"read that\", \"identify this\" to capture and describe what the camera sees.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            if (visionEnabled) {
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = piVisionUrl,
+                    onValueChange = { piVisionUrl = it },
+                    label = { Text("Pi vision server URL") },
+                    placeholder = { Text("http://192.168.1.213:8766") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = btCameraUrl,
+                    onValueChange = { btCameraUrl = it },
+                    label = { Text("Secondary camera URL (optional)") },
+                    placeholder = { Text("http://192.168.1.x:8080/shot.jpg") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Secondary camera: IP Webcam app → /shot.jpg, DroidCam → port 4747/shot.jpg. Leave blank to use phone camera.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Always-on scanning (Pi only)")
+                    Switch(checked = visionAlwaysOn, onCheckedChange = { visionAlwaysOn = it })
+                }
+                Text(
+                    "Captures a frame every 15s and logs detections — no speech. Requires Pi on same WiFi.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
             SectionLabel("Glasses button control (in dev)")
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -222,6 +275,10 @@ fun SettingsScreen(onBack: () -> Unit) {
                     store.responsivenessLevel = responsivenessLevel
                     store.maxThinkTimeSec = maxThinkTimeSec
                     store.glassesButtonsEnabled = glassesButtons
+                    store.visionEnabled = visionEnabled
+                    store.piVisionUrl = piVisionUrl.trim()
+                    store.btCameraUrl = btCameraUrl.trim()
+                    store.visionAlwaysOn = visionAlwaysOn
                     onBack()
                 },
                 enabled = store.isAvailable,

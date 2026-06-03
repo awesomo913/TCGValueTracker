@@ -106,6 +106,38 @@ class SecureKeyStore(context: Context) {
                 ?: Log.w(TAG, "drop write assistantMode — keystore unavailable")
         }
 
+    /** Master switch for the vision / camera feature. */
+    var visionEnabled: Boolean
+        get() = prefs?.getBoolean(KEY_VISION_ENABLED, false) ?: false
+        set(value) {
+            prefs?.edit()?.putBoolean(KEY_VISION_ENABLED, value)?.apply()
+                ?: Log.w(TAG, "drop write visionEnabled — keystore unavailable")
+        }
+
+    /** Pi vision server base URL. Default points at the Hailo Pi. */
+    var piVisionUrl: String
+        get() = prefs?.getString(KEY_PI_VISION_URL, DEFAULT_PI_URL) ?: DEFAULT_PI_URL
+        set(value) {
+            prefs?.edit()?.putString(KEY_PI_VISION_URL, value)?.apply()
+                ?: Log.w(TAG, "drop write piVisionUrl — keystore unavailable")
+        }
+
+    /** HTTP endpoint for secondary camera JPEG (IP Webcam / DroidCam / action cam). */
+    var btCameraUrl: String
+        get() = prefs?.getString(KEY_BT_CAMERA_URL, "") ?: ""
+        set(value) {
+            prefs?.edit()?.putString(KEY_BT_CAMERA_URL, value)?.apply()
+                ?: Log.w(TAG, "drop write btCameraUrl — keystore unavailable")
+        }
+
+    /** When true, capture a frame every 15s and log detections to AppLogger (no speech). */
+    var visionAlwaysOn: Boolean
+        get() = prefs?.getBoolean(KEY_VISION_ALWAYS_ON, false) ?: false
+        set(value) {
+            prefs?.edit()?.putBoolean(KEY_VISION_ALWAYS_ON, value)?.apply()
+                ?: Log.w(TAG, "drop write visionAlwaysOn — keystore unavailable")
+        }
+
     /** When true, intercept Meta Ray-Ban touchpad events. Default OFF — requires Meta View disabled. */
     var glassesButtonsEnabled: Boolean
         get() = prefs?.getBoolean(KEY_GLASSES_BUTTONS, false) ?: false
@@ -142,6 +174,11 @@ class SecureKeyStore(context: Context) {
         private const val KEY_CALIBRATION_PATH = "calibration_path"
         private const val KEY_ASSISTANT_MODE = "assistant_mode"
         private const val KEY_GLASSES_BUTTONS = "glasses_buttons_enabled"
+        private const val KEY_VISION_ENABLED = "vision_enabled"
+        private const val KEY_PI_VISION_URL = "pi_vision_url"
+        private const val KEY_BT_CAMERA_URL = "bt_camera_url"
+        private const val KEY_VISION_ALWAYS_ON = "vision_always_on"
+        private const val DEFAULT_PI_URL = "http://192.168.1.213:8766"
         private val DEFAULTS = mapOf(
             KEY_DEEPGRAM to "",
             KEY_GROQ to "",

@@ -4,12 +4,15 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.session.MediaSession
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.view.KeyEvent
 import com.owner.assist.R
 import com.owner.assist.data.AppLogger
 import com.owner.assist.data.SecureKeyStore
+import com.owner.assist.data.StopKey
 import com.owner.assist.pipeline.ConversationOrchestrator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +34,7 @@ class AssistantService : Service() {
     private var scope: CoroutineScope? = null
     private var stateJob: Job? = null
     private var orchestrator: ConversationOrchestrator? = null
+    private var mediaSession: MediaSession? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -95,6 +99,10 @@ class AssistantService : Service() {
                 else Log.d(TAG, "FORCE_RESPOND ignored — orchestrator not running")
                 return START_NOT_STICKY
             }
+            ACTION_STOP_SPEAKING -> {
+                orchestrator?.stopSpeaking()
+                return START_NOT_STICKY
+            }
             ACTION_RESTART -> {
                 Log.i(TAG, "RESTART — tearing down and rebuilding in-place")
                 softStop()
@@ -135,10 +143,39 @@ class AssistantService : Service() {
         if (!keys.isAvailable || !keys.keysComplete()) {
             Log.w(TAG, "keys missing — stopping immediately")
             AppLogger.log("SVC", "STOP keys missing isAvailable=${keys.isAvailable} keysComplete=${keys.keysComplete()}")
+            AssistantStateBus.addEvent("⚠ API keys missing — open Settings")
             hardStop()
             return
         }
         orchestrator = ConversationOrchestrator(this, freshScope, keys).also { it.start() }
+
+        if (keys.stopKey != StopKey.NONE) {
+            val session = MediaSession(this, "AssistantStopSession")
+            session.setCallback(object : MediaSession.Callback() {
+                override fun onMediaButtonEvent(intent: Intent): Boolean {
+                    val event = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                        ?: return false
+                    if (event.action != KeyEvent.ACTION_DOWN) return false
+                    val fires = when (keys.stopKey) {
+                        StopKey.VOL_UP   -> event.keyCode == KeyEvent.KEYCODE_VOLUME_UP
+                        StopKey.VOL_DOWN -> event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+                        StopKey.EITHER   -> event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+                                            event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+                        StopKey.NONE     -> false
+                    }
+                    if (fires) {
+                        orchestrator?.stopSpeaking()
+                        AppLogger.log("SVC", "stopSpeaking via MediaSession key=${event.keyCode}")
+                        return true
+                    }
+                    return false
+                }
+            })
+            @Suppress("DEPRECATION")
+            session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS)
+            session.isActive = true
+            mediaSession = session
+        }
     }
 
     private fun startForegroundCompat(label: String, state: AssistantState = AssistantState.LISTENING) {
@@ -164,6 +201,8 @@ class AssistantService : Service() {
     /** Tears down the orchestrator and scope but keeps the service alive as foreground.
      *  Used by ACTION_RESTART so startUp() can rebuild without a service lifecycle gap. */
     private fun softStop() {
+        mediaSession?.release()
+        mediaSession = null
         orchestrator?.stop()
         orchestrator = null
         stateJob?.cancel()
@@ -215,6 +254,7 @@ class AssistantService : Service() {
         const val ACTION_TUNE_QUESTIONER = "com.owner.assist.action.TUNE_QUESTIONER"
         const val ACTION_CLEAR_QUESTIONERS = "com.owner.assist.action.CLEAR_QUESTIONERS"
         const val ACTION_FORCE_RESPOND = "com.owner.assist.action.FORCE_RESPOND"
+        const val ACTION_STOP_SPEAKING = "com.owner.assist.action.STOP_SPEAKING"
 
         fun startIntent(ctx: android.content.Context): Intent =
             Intent(ctx, AssistantService::class.java).setAction(ACTION_START)

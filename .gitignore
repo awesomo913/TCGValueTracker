@@ -9,3 +9,4 @@ dist/
 SyncHub-repo-temp/
 nul
 uv.lock
+.aider*

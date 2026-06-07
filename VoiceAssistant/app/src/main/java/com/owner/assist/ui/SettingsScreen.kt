@@ -2,6 +2,8 @@ package com.owner.assist.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,12 +41,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.owner.assist.audio.BluetoothScoManager
 import com.owner.assist.data.LlmChoice
 import com.owner.assist.data.OemAutostart
+import com.owner.assist.data.PersonalityMode
+import com.owner.assist.data.ResponseStyle
 import com.owner.assist.data.SecureKeyStore
+import com.owner.assist.data.StopKey
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
     val ctx = LocalContext.current
@@ -54,15 +60,21 @@ fun SettingsScreen(onBack: () -> Unit) {
     var groq by remember { mutableStateOf(store.groqKey) }
     var deepseek by remember { mutableStateOf(store.deepseekKey) }
     var provider by remember { mutableStateOf(store.llmProvider) }
-    var wakeWord by remember { mutableStateOf(store.wakeWordEnabled) }
     var contextBlurb by remember { mutableStateOf(store.contextBlurb) }
     var responsivenessLevel by remember { mutableIntStateOf(store.responsivenessLevel) }
     var maxThinkTimeSec by remember { mutableIntStateOf(store.maxThinkTimeSec) }
     var glassesButtons by remember { mutableStateOf(store.glassesButtonsEnabled) }
     var visionEnabled by remember { mutableStateOf(store.visionEnabled) }
-    var piVisionUrl by remember { mutableStateOf(store.piVisionUrl) }
-    var btCameraUrl by remember { mutableStateOf(store.btCameraUrl) }
     var visionAlwaysOn by remember { mutableStateOf(store.visionAlwaysOn) }
+    var responseStyle by remember { mutableStateOf(store.responseStyle) }
+    var personalityMode by remember { mutableStateOf(store.personalityMode) }
+    var customPersonality by remember { mutableStateOf(store.customPersonality) }
+    var stopKey by remember { mutableStateOf(store.stopKey) }
+    var btMicAddress by remember { mutableStateOf(store.btMicAddress) }
+    var autoClipEnabled by remember { mutableStateOf(store.autoClipEnabled) }
+    var listenerClipsEnabled by remember { mutableStateOf(store.listenerClipsEnabled) }
+    val pairedHeadsets = remember { BluetoothScoManager.listPairedHeadsets(ctx) }
+    var customCallWord by remember { mutableStateOf(store.customCallWord) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -88,36 +100,205 @@ fun SettingsScreen(onBack: () -> Unit) {
                 )
             }
 
+            // ── API keys ──────────────────────────────────────────────────────
             SectionLabel("API keys")
+            Text(
+                "Deepgram key: deepgram.com/console  •  Groq key: console.groq.com  •  DeepSeek: platform.deepseek.com",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             SecretField("Deepgram (STT + TTS)", deepgram) { deepgram = it }
             SecretField("Groq", groq) { groq = it }
             SecretField("DeepSeek (fallback)", deepseek) { deepseek = it }
 
+            // ── LLM provider ──────────────────────────────────────────────────
             SectionLabel("LLM provider")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 LlmChoice.entries.forEach { choice ->
                     FilterChip(
                         selected = provider == choice,
                         onClick = { provider = choice },
-                        label = { Text(choice.display) },
+                        label = { Text(choice.display, maxLines = 1) },
+                    )
+                }
+            }
+            Text(
+                "Groq runs Llama 3.3 70B — fast, generous free tier. DeepSeek is the backup model. Each uses its own key from the API keys section above.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            // ── Response style ────────────────────────────────────────────────
+            SectionLabel("Response style")
+            Text(
+                "Immediate: one-word / one-phrase answers only. " +
+                "Standard: 1-3 sentences. " +
+                "Descriptive: full explanation with context.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ResponseStyle.entries.forEach { style ->
+                    FilterChip(
+                        selected = responseStyle == style,
+                        onClick = { responseStyle = style },
+                        label = { Text(style.display) },
                     )
                 }
             }
 
-            SectionLabel("Wake word (v2)")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("Require 'Hey J' before listening")
-                Switch(checked = wakeWord, onCheckedChange = { wakeWord = it })
-            }
+            // ── Personality mode ──────────────────────────────────────────────
+            SectionLabel("Personality mode")
             Text(
-                "Off = always-listening (~\$0.75/hr active). On = on-device wake word, near-zero idle cost.",
+                "20 modes — from Technician and Hype Man to Richard Nixon and Victorian English. " +
+                "Character modes ignore response-style injection so the voice stays in character. Custom = type your own.",
                 style = MaterialTheme.typography.bodySmall,
             )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PersonalityMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = personalityMode == mode,
+                        onClick = { personalityMode = mode },
+                        label = { Text(mode.display) },
+                    )
+                }
+            }
+            if (personalityMode == PersonalityMode.CUSTOM) {
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = customPersonality,
+                    onValueChange = { customPersonality = it },
+                    label = { Text("Custom personality") },
+                    placeholder = { Text("e.g. You are a sarcastic pirate who answers every question in rhyme…") },
+                    minLines = 4,
+                    maxLines = 12,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "This becomes the AI's full instruction set. The API may reject extreme content — " +
+                    "it will fall back to the default if that happens.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (personalityMode == PersonalityMode.DEFAULT) {
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = contextBlurb,
+                    onValueChange = { contextBlurb = it },
+                    label = { Text("Domain context (optional)") },
+                    placeholder = { Text("e.g. You are an assistant for an HVAC technician…") },
+                    minLines = 3,
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Leave blank to keep the built-in forklift / technician context.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
 
+            // ── Stop button ───────────────────────────────────────────────────
+            SectionLabel("Stop button")
+            Text(
+                "Assign a hardware key to immediately stop the assistant from speaking. " +
+                "Useful when you need to cut it off fast.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StopKey.entries.forEach { key ->
+                    FilterChip(
+                        selected = stopKey == key,
+                        onClick = { stopKey = key },
+                        label = { Text(key.display) },
+                    )
+                }
+            }
+
+            // ── Bluetooth mic ─────────────────────────────────────────────────
+            SectionLabel("Bluetooth mic")
+            if (pairedHeadsets.isEmpty()) {
+                Text(
+                    "No paired BT headsets found. Pair a headset in Android Bluetooth settings first.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    "Choose a preferred mic. The app will try this device first when connecting. " +
+                    "Leave unselected to use any available BT device.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = btMicAddress.isBlank(),
+                        onClick = { btMicAddress = "" },
+                        label = { Text("Any") },
+                    )
+                    pairedHeadsets.forEach { device ->
+                        FilterChip(
+                            selected = btMicAddress == device.address,
+                            onClick = { btMicAddress = device.address },
+                            label = { Text(device.name) },
+                        )
+                    }
+                }
+            }
+
+            // ── Voice clips ───────────────────────────────────────────────────
+            SectionLabel("Voice clips")
+            Text(
+                "Clips are saved to the app's external files directory (accessible via Files app).",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text("30-second session clips")
+                    Text(
+                        "Saves last 30s of audio every 30 seconds while running.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = autoClipEnabled, onCheckedChange = { autoClipEnabled = it })
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text("Listener clips (up to 3 voices)")
+                    Text(
+                        "Saves a 10-second clip for each detected non-self speaker.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = listenerClipsEnabled, onCheckedChange = { listenerClipsEnabled = it })
+            }
+
+            // ── Call word ──────────────────────────────────────────────────────────
+            SectionLabel("Call word")
+            Text(
+                "If set, the assistant only responds when this word or phrase appears in speech. " +
+                "Leave blank to respond to everything.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = customCallWord,
+                onValueChange = { customCallWord = it },
+                label = { Text("Call word (optional)") },
+                placeholder = { Text("e.g. hey j, assistant, alex…") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // ── Background reliability ─────────────────────────────────────────
             SectionLabel("Background reliability")
             Text(
                 "Android will kill long-running background services unless you exempt this app.",
@@ -143,6 +324,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 ) { Text("Open autostart settings") }
             }
 
+            // ── Response speed ────────────────────────────────────────────────
             SectionLabel("Response speed")
             val speedLabel = when {
                 responsivenessLevel <= 20  -> "Very responsive — fastest start, noticeable gaps between sentences"
@@ -164,6 +346,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 Text("Smooth", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
+            // ── Max formulation time ──────────────────────────────────────────
             SectionLabel("Max formulation time")
             Text(
                 "How long the AI can think before being cut off. Currently: ${maxThinkTimeSec}s. " +
@@ -182,22 +365,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 Text("60s", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            SectionLabel("Domain knowledge")
-            Text(
-                "What should the assistant know about? " +
-                "Leave blank to keep the built-in forklift / technician context.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            OutlinedTextField(
-                value = contextBlurb,
-                onValueChange = { contextBlurb = it },
-                label = { Text("Context (optional)") },
-                placeholder = { Text("e.g. You are an assistant for an HVAC technician…") },
-                minLines = 4,
-                maxLines = 10,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
+            // ── Vision / Camera ───────────────────────────────────────────────
             SectionLabel("Vision / Camera")
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -213,26 +381,6 @@ fun SettingsScreen(onBack: () -> Unit) {
             )
             if (visionEnabled) {
                 Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = piVisionUrl,
-                    onValueChange = { piVisionUrl = it },
-                    label = { Text("Pi vision server URL") },
-                    placeholder = { Text("http://192.168.1.213:8766") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = btCameraUrl,
-                    onValueChange = { btCameraUrl = it },
-                    label = { Text("Secondary camera URL (optional)") },
-                    placeholder = { Text("http://192.168.1.x:8080/shot.jpg") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    "Secondary camera: IP Webcam app → /shot.jpg, DroidCam → port 4747/shot.jpg. Leave blank to use phone camera.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -247,6 +395,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 )
             }
 
+            // ── Glasses button ────────────────────────────────────────────────
             SectionLabel("Glasses button control (in dev)")
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -263,6 +412,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            // ── Save ──────────────────────────────────────────────────────────
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = {
@@ -270,15 +420,20 @@ fun SettingsScreen(onBack: () -> Unit) {
                     store.groqKey = groq.trim()
                     store.deepseekKey = deepseek.trim()
                     store.llmProvider = provider
-                    store.wakeWordEnabled = wakeWord
                     store.contextBlurb = contextBlurb.trim()
                     store.responsivenessLevel = responsivenessLevel
                     store.maxThinkTimeSec = maxThinkTimeSec
                     store.glassesButtonsEnabled = glassesButtons
                     store.visionEnabled = visionEnabled
-                    store.piVisionUrl = piVisionUrl.trim()
-                    store.btCameraUrl = btCameraUrl.trim()
                     store.visionAlwaysOn = visionAlwaysOn
+                    store.customCallWord = customCallWord.trim()
+                    store.responseStyle = responseStyle
+                    store.personalityMode = personalityMode
+                    store.customPersonality = customPersonality.trim()
+                    store.stopKey = stopKey
+                    store.btMicAddress = btMicAddress.trim()
+                    store.autoClipEnabled = autoClipEnabled
+                    store.listenerClipsEnabled = listenerClipsEnabled
                     onBack()
                 },
                 enabled = store.isAvailable,
@@ -290,7 +445,11 @@ fun SettingsScreen(onBack: () -> Unit) {
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text = text, style = MaterialTheme.typography.titleMedium)
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable

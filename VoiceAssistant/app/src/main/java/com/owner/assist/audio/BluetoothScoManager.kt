@@ -1,5 +1,6 @@
 package com.owner.assist.audio
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothHeadset
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -36,7 +37,7 @@ class BluetoothScoManager(private val ctx: Context) {
     private var savedMusicVolume: Int = -1
     private var savedAudioMode: Int = AudioManager.MODE_NORMAL
 
-    suspend fun connect(timeoutMs: Long = SCO_TIMEOUT_MS): Route {
+    suspend fun connect(timeoutMs: Long = SCO_TIMEOUT_MS, preferredAddress: String = ""): Route {
         // Ensure we start from NORMAL mode. A previous session may have set MODE_IN_COMMUNICATION
         // without restoring it (e.g. crash, hard kill). Stale incall mode silences AudioRecord
         // by routing the mic to the SCO headset instead of the phone's internal mic.
@@ -45,7 +46,7 @@ class BluetoothScoManager(private val ctx: Context) {
             audioManager.mode = AudioManager.MODE_NORMAL
             delay(100)
         }
-        val route = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) connectModern()
+        val route = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) connectModern(preferredAddress)
         else connectLegacy(timeoutMs)
         if (route == Route.SCO) {
             // Max both streams: VOICE_CALL for legacy routing, MUSIC for USAGE_MEDIA AudioTrack.
@@ -99,7 +100,7 @@ class BluetoothScoManager(private val ctx: Context) {
     // ------- API 31+ path -------
 
     @android.annotation.SuppressLint("NewApi")
-    private suspend fun connectModern(): Route {
+    private suspend fun connectModern(preferredAddress: String = ""): Route {
         // Do NOT set MODE_IN_COMMUNICATION here — it routes the mic to the SCO headset mic,
         // which silences AudioRecord (SCO mic on Oakley Meta is 8kHz only, incompatible with
         // our 16kHz AudioRecord). Samsung routes USAGE_MEDIA to SCO automatically when
@@ -107,11 +108,23 @@ class BluetoothScoManager(private val ctx: Context) {
         repeat(SCO_MODERN_RETRIES) { attempt ->
             val devices = audioManager.availableCommunicationDevices
             Log.i(TAG, "SCO attempt ${attempt + 1}/$SCO_MODERN_RETRIES — available: ${devices.map { it.type }}")
-            // TYPE_BLUETOOTH_SCO covers classic headsets; TYPE_BLE_HEADSET covers LE Audio earbuds.
-            val scoDevice = devices.firstOrNull {
-                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                    it.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+            val scoDevice = if (preferredAddress.isNotBlank()) {
+                devices.firstOrNull {
+                    (it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                     (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                      it.type == AudioDeviceInfo.TYPE_BLE_HEADSET)) &&
+                    it.address == preferredAddress
+                } ?: devices.firstOrNull {
+                    it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                     it.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+                }
+            } else {
+                devices.firstOrNull {
+                    it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                     it.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+                }
             }
             if (scoDevice != null) {
                 val ok = try {
@@ -201,5 +214,30 @@ class BluetoothScoManager(private val ctx: Context) {
         private const val SCO_MODERN_RETRIES = 5
         private const val SCO_MODERN_DELAY_MS = 400L
         const val ACTION_HEADSET_STATE = BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED
+
+        data class BtHeadsetInfo(val address: String, val name: String)
+
+        @SuppressLint("MissingPermission")
+        fun listPairedHeadsets(ctx: Context): List<BtHeadsetInfo> {
+            return try {
+                val btManager = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+                val adapter = btManager?.adapter ?: return emptyList()
+                if (!adapter.isEnabled) return emptyList()
+                adapter.bondedDevices
+                    ?.filter { device ->
+                        device.bluetoothClass?.deviceClass?.let { cls ->
+                            cls == android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES ||
+                            cls == android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET ||
+                            cls == android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE ||
+                            cls == android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES
+                        } ?: false
+                    }
+                    ?.map { BtHeadsetInfo(it.address, it.name ?: it.address) }
+                    ?: emptyList()
+            } catch (e: Exception) {
+                Log.w(TAG, "listPairedHeadsets failed: ${e.message}")
+                emptyList()
+            }
+        }
     }
 }

@@ -4,7 +4,6 @@ import android.util.Log
 import com.owner.assist.data.AppLogger
 import com.owner.assist.data.SecureKeyStore
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -14,16 +13,8 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * Routes a JPEG frame (base64) to:
- *   1. Pi vision server (YOLOv8m, port 8766) — fast, local, object detection
- *   2. Groq vision API (llama-3.2-11b-vision) — rich description, requires internet
- *
- * Pi server expected API:
- *   POST <piUrl>/detect   multipart/form-data  field: "image" (JPEG bytes)
- *   Response: {"detections":[{"class":"wrench","confidence":0.91},...]}
- *   OR any JSON with a top-level "detections" or "objects" array.
- *
- * If Pi is unreachable or returns an error, falls back to Groq automatically.
+ * Describes a JPEG frame (base64) using Groq vision (llama-3.2-11b-vision).
+ * [utterance] is the user's original phrase — used to focus the prompt.
  */
 object VisionClient {
 
@@ -32,25 +23,7 @@ object VisionClient {
         .readTimeout(10, TimeUnit.SECONDS)
         .build()
 
-    /**
-     * Returns a short spoken-English description of the image.
-     * [utterance] is the user's original phrase — used to focus the Groq prompt.
-     */
     fun describe(base64Jpeg: String, utterance: String, keys: SecureKeyStore): String {
-        val piUrl = keys.piVisionUrl.trim().trimEnd('/')
-        if (piUrl.isNotBlank()) {
-            try {
-                val result = queryPi(base64Jpeg, piUrl)
-                if (result.isNotBlank()) {
-                    AppLogger.log("VISION", "Pi result: ${result.take(80)}")
-                    return result
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Pi vision failed: ${e.message} — falling back to Groq")
-                AppLogger.log("VISION", "Pi failed: ${e.javaClass.simpleName} ${e.message}")
-            }
-        }
-
         return try {
             val result = queryGroq(base64Jpeg, utterance, keys.groqKey)
             AppLogger.log("VISION", "Groq result: ${result.take(80)}")
@@ -60,40 +33,6 @@ object VisionClient {
             AppLogger.log("VISION", "Groq failed: ${e.javaClass.simpleName} ${e.message}")
             "I couldn't identify what I'm looking at. Check your connection and try again."
         }
-    }
-
-    // ── Pi (YOLOv8 FastAPI) ───────────────────────────────────────────────────
-
-    private fun queryPi(base64Jpeg: String, piUrl: String): String {
-        val imageBytes = android.util.Base64.decode(base64Jpeg, android.util.Base64.NO_WRAP)
-        val body = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart(
-                "image", "frame.jpg",
-                imageBytes.toRequestBody("image/jpeg".toMediaType()),
-            )
-            .build()
-
-        val req = Request.Builder().url("$piUrl/detect").post(body).build()
-        val resp = http.newCall(req).execute()
-        if (!resp.isSuccessful) throw IOException("Pi HTTP ${resp.code}")
-        val json = JSONObject(resp.body?.string() ?: throw IOException("empty Pi response"))
-
-        val detections = json.optJSONArray("detections") ?: json.optJSONArray("objects")
-            ?: return ""
-
-        if (detections.length() == 0) return "Nothing notable detected."
-
-        val items = buildList {
-            for (i in 0 until detections.length()) {
-                val d = detections.optJSONObject(i) ?: continue
-                val label = d.optString("class").ifBlank { d.optString("label") }
-                val conf = d.optDouble("confidence", 0.0)
-                if (label.isNotBlank() && conf > 0.4) add("$label (${"%.0f".format(conf * 100)}%)")
-            }
-        }
-        return if (items.isEmpty()) "Nothing identified with high confidence."
-               else "I see: ${items.joinToString(", ")}."
     }
 
     // ── Groq vision (llama-3.2-11b) ──────────────────────────────────────────

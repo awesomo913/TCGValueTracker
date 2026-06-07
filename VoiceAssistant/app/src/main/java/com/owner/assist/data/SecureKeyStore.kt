@@ -54,13 +54,6 @@ class SecureKeyStore(context: Context) {
                 ?: Log.w(TAG, "drop write llmProvider — keystore unavailable")
         }
 
-    var wakeWordEnabled: Boolean
-        get() = prefs?.getBoolean(KEY_WAKE_WORD, false) ?: false
-        set(value) {
-            prefs?.edit()?.putBoolean(KEY_WAKE_WORD, value)?.apply()
-                ?: Log.w(TAG, "drop write wakeWord — keystore unavailable")
-        }
-
     /** Free-text domain context shown to the LLM as part of its system prompt.
      *  Blank = use the built-in forklift/technician default. */
     var contextBlurb: String
@@ -114,20 +107,12 @@ class SecureKeyStore(context: Context) {
                 ?: Log.w(TAG, "drop write visionEnabled — keystore unavailable")
         }
 
-    /** Pi vision server base URL. Default points at the Hailo Pi. */
-    var piVisionUrl: String
-        get() = prefs?.getString(KEY_PI_VISION_URL, DEFAULT_PI_URL) ?: DEFAULT_PI_URL
+    /** Word or phrase the assistant listens for before responding. Blank = respond to everything. */
+    var customCallWord: String
+        get() = prefs?.getString(KEY_CUSTOM_CALL_WORD, "") ?: ""
         set(value) {
-            prefs?.edit()?.putString(KEY_PI_VISION_URL, value)?.apply()
-                ?: Log.w(TAG, "drop write piVisionUrl — keystore unavailable")
-        }
-
-    /** HTTP endpoint for secondary camera JPEG (IP Webcam / DroidCam / action cam). */
-    var btCameraUrl: String
-        get() = prefs?.getString(KEY_BT_CAMERA_URL, "") ?: ""
-        set(value) {
-            prefs?.edit()?.putString(KEY_BT_CAMERA_URL, value)?.apply()
-                ?: Log.w(TAG, "drop write btCameraUrl — keystore unavailable")
+            prefs?.edit()?.putString(KEY_CUSTOM_CALL_WORD, value)?.apply()
+                ?: Log.w(TAG, "drop write customCallWord — keystore unavailable")
         }
 
     /** When true, capture a frame every 15s and log detections to AppLogger (no speech). */
@@ -144,6 +129,59 @@ class SecureKeyStore(context: Context) {
         set(value) {
             prefs?.edit()?.putBoolean(KEY_GLASSES_BUTTONS, value)?.apply()
                 ?: Log.w(TAG, "drop write glassesButtonsEnabled — keystore unavailable")
+        }
+
+    var responseStyle: ResponseStyle
+        get() = ResponseStyle.fromId(prefs?.getString(KEY_RESPONSE_STYLE, ResponseStyle.STANDARD.id))
+        set(value) {
+            prefs?.edit()?.putString(KEY_RESPONSE_STYLE, value.id)?.apply()
+                ?: Log.w(TAG, "drop write responseStyle — keystore unavailable")
+        }
+
+    var personalityMode: PersonalityMode
+        get() = PersonalityMode.fromId(prefs?.getString(KEY_PERSONALITY_MODE, PersonalityMode.DEFAULT.id))
+        set(value) {
+            prefs?.edit()?.putString(KEY_PERSONALITY_MODE, value.id)?.apply()
+                ?: Log.w(TAG, "drop write personalityMode — keystore unavailable")
+        }
+
+    /** Custom personality text — used when personalityMode == CUSTOM. */
+    var customPersonality: String
+        get() = prefs?.getString(KEY_CUSTOM_PERSONALITY, "") ?: ""
+        set(value) {
+            prefs?.edit()?.putString(KEY_CUSTOM_PERSONALITY, value)?.apply()
+                ?: Log.w(TAG, "drop write customPersonality — keystore unavailable")
+        }
+
+    var stopKey: StopKey
+        get() = StopKey.fromId(prefs?.getString(KEY_STOP_KEY, StopKey.NONE.id))
+        set(value) {
+            prefs?.edit()?.putString(KEY_STOP_KEY, value.id)?.apply()
+                ?: Log.w(TAG, "drop write stopKey — keystore unavailable")
+        }
+
+    /** MAC address of the preferred BT mic. Blank = use any available BT SCO device. */
+    var btMicAddress: String
+        get() = prefs?.getString(KEY_BT_MIC_ADDRESS, "") ?: ""
+        set(value) {
+            prefs?.edit()?.putString(KEY_BT_MIC_ADDRESS, value)?.apply()
+                ?: Log.w(TAG, "drop write btMicAddress — keystore unavailable")
+        }
+
+    /** Auto-save a 30-second rolling clip every 30s while the service is running. */
+    var autoClipEnabled: Boolean
+        get() = prefs?.getBoolean(KEY_AUTO_CLIP, false) ?: false
+        set(value) {
+            prefs?.edit()?.putBoolean(KEY_AUTO_CLIP, value)?.apply()
+                ?: Log.w(TAG, "drop write autoClipEnabled — keystore unavailable")
+        }
+
+    /** Save a 10-second clip for each detected non-self speaker (up to 3). */
+    var listenerClipsEnabled: Boolean
+        get() = prefs?.getBoolean(KEY_LISTENER_CLIPS, false) ?: false
+        set(value) {
+            prefs?.edit()?.putBoolean(KEY_LISTENER_CLIPS, value)?.apply()
+                ?: Log.w(TAG, "drop write listenerClipsEnabled — keystore unavailable")
         }
 
     fun keysComplete(): Boolean {
@@ -167,7 +205,6 @@ class SecureKeyStore(context: Context) {
         private const val KEY_GROQ = "groq_key"
         private const val KEY_DEEPSEEK = "deepseek_key"
         private const val KEY_LLM_CHOICE = "llm_choice"
-        private const val KEY_WAKE_WORD = "wake_word_enabled"
         private const val KEY_CONTEXT_BLURB = "context_blurb"
         private const val KEY_RESPONSIVENESS = "responsiveness_level"
         private const val KEY_MAX_THINK_SEC = "max_think_sec"
@@ -175,10 +212,15 @@ class SecureKeyStore(context: Context) {
         private const val KEY_ASSISTANT_MODE = "assistant_mode"
         private const val KEY_GLASSES_BUTTONS = "glasses_buttons_enabled"
         private const val KEY_VISION_ENABLED = "vision_enabled"
-        private const val KEY_PI_VISION_URL = "pi_vision_url"
-        private const val KEY_BT_CAMERA_URL = "bt_camera_url"
         private const val KEY_VISION_ALWAYS_ON = "vision_always_on"
-        private const val DEFAULT_PI_URL = "http://192.168.1.213:8766"
+        private const val KEY_CUSTOM_CALL_WORD = "custom_call_word"
+        private const val KEY_RESPONSE_STYLE = "response_style"
+        private const val KEY_PERSONALITY_MODE = "personality_mode"
+        private const val KEY_CUSTOM_PERSONALITY = "custom_personality"
+        private const val KEY_STOP_KEY = "stop_key"
+        private const val KEY_BT_MIC_ADDRESS = "bt_mic_address"
+        private const val KEY_AUTO_CLIP = "auto_clip_enabled"
+        private const val KEY_LISTENER_CLIPS = "listener_clips_enabled"
         private val DEFAULTS = mapOf(
             KEY_DEEPGRAM to "",
             KEY_GROQ to "",
@@ -187,7 +229,7 @@ class SecureKeyStore(context: Context) {
 }
 
 enum class LlmChoice(val id: String, val display: String) {
-    GROQ("groq", "Groq (Llama 3.3 70B)"),
+    GROQ("groq", "Groq"),
     DEEPSEEK("deepseek", "DeepSeek");
 
     companion object {
@@ -201,6 +243,54 @@ enum class AssistantMode(val id: String, val display: String) {
 
     companion object {
         fun fromId(id: String?): AssistantMode = entries.firstOrNull { it.id == id } ?: PASSIVE
+    }
+}
+
+enum class ResponseStyle(val id: String, val display: String) {
+    IMMEDIATE("immediate", "Immediate"),
+    STANDARD("standard", "Standard"),
+    DESCRIPTIVE("descriptive", "Descriptive");
+
+    companion object {
+        fun fromId(id: String?): ResponseStyle = entries.firstOrNull { it.id == id } ?: STANDARD
+    }
+}
+
+enum class PersonalityMode(val id: String, val display: String) {
+    DEFAULT("default", "🔧 Technician"),
+    SOCIAL_AUTOPILOT("social_autopilot", "🎭 Social Autopilot"),
+    JOKE("joke", "😂 Joke Mode"),
+    ELECTRICAL_GENIUS("electrical_genius", "⚡ Electrical Genius"),
+    MYSTIC("mystic", "🔮 Mystic"),
+    RAGEBAIT("ragebait", "😤 Ragebait"),
+    COMEBACK_KING("comeback_king", "👑 Comeback King"),
+    HYPE_MAN("hype_man", "🔥 Hype Man"),
+    SHADOW_ANALYST("shadow_analyst", "🕵️ Shadow Analyst"),
+    NEGOTIATOR("negotiator", "🤝 Negotiator"),
+    DEBATE_COACH("debate_coach", "⚔️ Debate Coach"),
+    PHILOSOPHER("philosopher", "🧠 Philosopher"),
+    CONSPIRACY("conspiracy", "👁️ Conspiracy"),
+    CLAIRVOYANT("clairvoyant", "🌙 Clairvoyant"),
+    ENGLISH_1800S("english_1800s", "🎩 Victorian"),
+    ENGLISH_1900S("english_1900s", "🧐 Edwardian"),
+    ENGLISH_SCHOLAR("english_scholar", "📚 English Scholar"),
+    RICHARD_NIXON("richard_nixon", "🇺🇸 Richard Nixon"),
+    POLITICAL_NUTJOB("political_nutjob", "📢 Political Nutjob"),
+    CUSTOM("custom", "✏️ Custom");
+
+    companion object {
+        fun fromId(id: String?): PersonalityMode = entries.firstOrNull { it.id == id } ?: DEFAULT
+    }
+}
+
+enum class StopKey(val id: String, val display: String) {
+    NONE("none", "None"),
+    VOL_UP("vol_up", "Volume Up"),
+    VOL_DOWN("vol_down", "Volume Down"),
+    EITHER("either", "Either Volume Key");
+
+    companion object {
+        fun fromId(id: String?): StopKey = entries.firstOrNull { it.id == id } ?: NONE
     }
 }
 

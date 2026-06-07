@@ -9,10 +9,19 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +49,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -49,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +67,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.owner.assist.audio.MicCapture
 import com.owner.assist.data.AssistantMode
+import com.owner.assist.data.PersonalityMode
 import com.owner.assist.data.QuestionerProfileStore
 import com.owner.assist.data.SecureKeyStore
 import com.owner.assist.service.AssistantService
@@ -86,18 +99,21 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
     val isTuningQuestioner by AssistantStateBus.isTuningQuestioner.collectAsState()
     val isOff = state == AssistantState.OFF
 
-    var calibratingIn by remember { mutableStateOf<Int?>(null) }
+    var calibratingIn by rememberSaveable { mutableStateOf<Int?>(null) }
     var isPlayingCalibration by remember { mutableStateOf(false) }
-    var tuningIn by remember { mutableStateOf<Int?>(null) }
+    var tuningIn by rememberSaveable { mutableStateOf<Int?>(null) }
     val playbackScope = rememberCoroutineScope()
     var calibrationPath by remember { mutableStateOf(store.voiceCalibrationPath) }
     var assistantMode by remember { mutableStateOf(store.assistantMode) }
     var questionerCount by remember { mutableStateOf(QuestionerProfileStore.list(ctx).size) }
+    var currentPersonality by remember { mutableStateOf(store.personalityMode) }
+    var permDeniedMsg by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(events) {
         val newPath = store.voiceCalibrationPath
         if (newPath.isNotEmpty()) calibrationPath = newPath
         questionerCount = QuestionerProfileStore.list(ctx).size
+        currentPersonality = store.personalityMode
     }
 
     // Voice calibration countdown
@@ -134,7 +150,18 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
         if (grants.values.all { it }) {
+            permDeniedMsg = null
             ContextCompat.startForegroundService(ctx, AssistantService.startIntent(ctx))
+        } else {
+            val denied = grants.filterValues { !it }.keys.map { p ->
+                when {
+                    p.endsWith("RECORD_AUDIO")      -> "Microphone"
+                    p.endsWith("BLUETOOTH_CONNECT") -> "Bluetooth"
+                    p.endsWith("POST_NOTIFICATIONS")-> "Notifications"
+                    else -> p.substringAfterLast('.')
+                }
+            }
+            permDeniedMsg = "${denied.joinToString(" & ")} permission denied — go to phone Settings → Apps → Voice Assistant → Permissions"
         }
     }
 
@@ -147,6 +174,31 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
         targetValue = state.ringColor(),
         animationSpec = tween(durationMillis = 200),
         label = "ringColor",
+    )
+    val infiniteTransition = rememberInfiniteTransition(label = "ring")
+    val thinkAngle by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "thinkAngle",
+    )
+    val speakPulse by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "speakPulse",
+    )
+    val listenBreath by infiniteTransition.animateFloat(
+        initialValue = 0.9f, targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "listenBreath",
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -167,7 +219,10 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
         )
 
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -201,29 +256,82 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // ── Audio level ring ────────────────────────────────────────────
-            Box(modifier = Modifier.size(120.dp), contentAlignment = Alignment.Center) {
-                Canvas(modifier = Modifier.size(120.dp)) {
-                    val strokeWidth = 6.dp.toPx()
-                    val inset = strokeWidth / 2
-                    val sweep = animatedLevel * 360f
-                    drawArc(
-                        color = ringColor.copy(alpha = 0.25f),
-                        startAngle = -90f, sweepAngle = 360f, useCenter = false,
-                        topLeft = Offset(inset, inset),
-                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                        style = Stroke(strokeWidth),
-                    )
-                    if (sweep > 0f) {
-                        drawArc(
-                            color = ringColor,
-                            startAngle = -90f, sweepAngle = sweep, useCenter = false,
-                            topLeft = Offset(inset, inset),
-                            size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                            style = Stroke(strokeWidth),
-                        )
+            // ── Active personality chip (tap → Settings) ────────────────────
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.clickable { onOpenSettings() },
+            ) {
+                Text(
+                    text = currentPersonality.display,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                )
+            }
+            Text(
+                text = "tap to change mode",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ── Animated state ring ─────────────────────────────────────────
+            Box(modifier = Modifier.size(160.dp), contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.size(160.dp)) {
+                    val strokeW = 6.dp.toPx()
+                    val ringR = 60.dp.toPx()
+                    val cx = Offset(size.width / 2, size.height / 2)
+                    val inset = size.width / 2 - ringR
+                    val arcTL = Offset(inset + strokeW / 2, inset + strokeW / 2)
+                    val arcSz = Size(ringR * 2 - strokeW, ringR * 2 - strokeW)
+
+                    when (state) {
+                        AssistantState.OFF -> {
+                            drawCircle(color = ringColor.copy(alpha = 0.2f),
+                                radius = ringR, center = cx, style = Stroke(strokeW))
+                        }
+                        AssistantState.LISTENING -> {
+                            drawCircle(color = ringColor.copy(alpha = 0.25f),
+                                radius = ringR, center = cx, style = Stroke(strokeW))
+                            val sweep = animatedLevel * 360f
+                            if (sweep > 0f) {
+                                drawArc(color = ringColor,
+                                    startAngle = -90f, sweepAngle = sweep, useCenter = false,
+                                    topLeft = arcTL, size = arcSz,
+                                    style = Stroke(strokeW, cap = StrokeCap.Round))
+                            }
+                            drawCircle(color = ringColor.copy(alpha = 0.13f),
+                                radius = ringR * listenBreath, center = cx,
+                                style = Stroke(2.dp.toPx()))
+                        }
+                        AssistantState.THINKING -> {
+                            drawCircle(color = ringColor.copy(alpha = 0.15f),
+                                radius = ringR, center = cx, style = Stroke(strokeW))
+                            drawArc(color = ringColor.copy(alpha = 0.25f),
+                                startAngle = thinkAngle - 90f - 70f,
+                                sweepAngle = 70f, useCenter = false,
+                                topLeft = arcTL, size = arcSz,
+                                style = Stroke(strokeW * 0.7f, cap = StrokeCap.Round))
+                            drawArc(color = ringColor,
+                                startAngle = thinkAngle - 90f, sweepAngle = 30f,
+                                useCenter = false, topLeft = arcTL, size = arcSz,
+                                style = Stroke(strokeW, cap = StrokeCap.Round))
+                        }
+                        AssistantState.SPEAKING -> {
+                            drawCircle(
+                                color = ringColor.copy(alpha = 0.5f + 0.4f * (1f - speakPulse)),
+                                radius = ringR, center = cx, style = Stroke(strokeW))
+                            val r1 = ringR + 22.dp.toPx() * speakPulse
+                            drawCircle(color = ringColor.copy(alpha = (1f - speakPulse) * 0.55f),
+                                radius = r1, center = cx, style = Stroke(3.dp.toPx()))
+                            val p2 = (speakPulse + 0.5f) % 1f
+                            val r2 = ringR + 22.dp.toPx() * p2
+                            drawCircle(color = ringColor.copy(alpha = (1f - p2) * 0.35f),
+                                radius = r2, center = cx, style = Stroke(2.dp.toPx()))
+                        }
                     }
                 }
                 Box(
@@ -252,6 +360,14 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
                 ) { Text("Restart") }
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // ── Voice ID ──────────────────────────────────────────────
+                Text(
+                    text = "VOICE ID",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 // Voice calibration
                 OutlinedButton(
                     onClick = { if (calibratingIn == null) calibratingIn = 3 },
@@ -279,10 +395,28 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
                         enabled = !isPlayingCalibration,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(if (isPlayingCalibration) "Playing…" else "Play Voice Sample") }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = {
+                            runCatching { File(calibrationPath).delete() }
+                            store.voiceCalibrationPath = ""
+                            calibrationPath = ""
+                        },
+                        enabled = !isPlayingCalibration,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Clear Voice Sample") }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
+                // ── Questioner ────────────────────────────────────────────
+                Text(
+                    text = "QUESTIONER",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 // Tune Questioner button + clear
                 val tuneLabel = when {
                     isTuningQuestioner -> "Recording questioner…"
@@ -306,8 +440,16 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
                     ) { Text("Clear Questioner Profiles") }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
+                // ── Session ───────────────────────────────────────────────
+                Text(
+                    text = "SESSION",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 // Session recording
                 if (isSessionRecording) {
                     Button(
@@ -353,6 +495,18 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenChatLog: () -> Unit, onOpenNote
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (isOff) "Turn ON" else "Turn OFF")
+            }
+
+            // Permission denied message
+            val deniedMsg = permDeniedMsg
+            if (deniedMsg != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = deniedMsg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             // Event log
@@ -417,7 +571,8 @@ private suspend fun playWavFile(path: String) = withContext(Dispatchers.IO) {
         }
         delay(bufferSize.toLong() * 1000L / MicCapture.SAMPLE_RATE / 2 + 300L)
     } finally {
-        runCatching { track.stop(); track.release() }
+        runCatching { track.stop() }.onFailure { android.util.Log.w("HomeScreen", "AudioTrack stop error: ${it.message}") }
+        runCatching { track.release() }.onFailure { android.util.Log.w("HomeScreen", "AudioTrack release error: ${it.message}") }
     }
 }
 

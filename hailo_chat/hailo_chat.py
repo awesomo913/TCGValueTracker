@@ -100,6 +100,9 @@ MODEL_META: list[tuple[str, dict]] = [
     # ── Explicit fleet entries (exact installed names — matched FIRST) ────────
     # These use the as-installed names (some hyphenated by the GGUF importer)
     # so they win over the generic family patterns further down.
+    ("coder-abliterated", {"badge": "💻🔓 CODER+", "emoji": "💻", "tier": "coder",
+                           "best_for": "Qwen2.5-Coder 7B abliterated — best local coder with refusals removed at the weights level",
+                           "prompt_tip": "Same as qwen2.5-coder but won't refuse. 16K context. Paste the file + state the change."}),
     ("qwen2-5-coder",     {"badge": "💻 CODER",   "emoji": "💻", "tier": "coder",
                            "best_for": "Code generation, refactoring, debugging — best local coder (Qwen2.5-Coder 7B)",
                            "prompt_tip": "Paste the file + state the change. Show existing code first. Diff-style works great."}),

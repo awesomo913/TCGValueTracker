@@ -341,7 +341,7 @@ def launch_aider_solo(model: str, project_dir: str, edit_self: bool = False,
         str(AIDER_EXE),
         "--model", aider_model,
         "--no-show-model-warnings",
-        "--map-tokens", "0",
+        "--map-tokens", "1024",  # repo map ON — gives the model cross-file context
         "--restore-chat-history",
         "--max-chat-history-tokens", str(history_tokens),
     ]
@@ -386,7 +386,7 @@ def launch_aider_dual(architect: str, editor: str, project_dir: str,
         "--editor-model", edit_model,
         "--editor-edit-format", "whole",
         "--no-show-model-warnings",
-        "--map-tokens", "0",
+        "--map-tokens", "1024",  # repo map ON — gives the model cross-file context
         "--restore-chat-history",
         "--max-chat-history-tokens", str(history_tokens),
     ]
@@ -431,7 +431,7 @@ def run_chain_to_aider(models: list[str], task: str, project_dir: str):
         str(AIDER_EXE),
         "--model", last_model,
         "--no-show-model-warnings",
-        "--map-tokens", "0",
+        "--map-tokens", "1024",  # repo map ON — gives the model cross-file context
         "--restore-chat-history",
         "--max-chat-history-tokens", "4096",
         "--message", final_spec[:4000],  # Initial message with the spec
